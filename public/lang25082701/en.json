@@ -1,0 +1,113 @@
+{
+    "language": "English",
+    "title": "Real-time Shogi",
+    "volume-setting": "Volume",
+    "bgm-volume": "BGM",
+    "se-volume": "SE",
+    "voice-volume": "Voice",
+    "rule": "Rules",
+    "rule-text": "・Capture the opponent's King.\n\n・Move your King to the opponent's King's starting position.",
+    "piece-list": "Piece List",
+    "close": "Close",
+    "manual": "Manual",
+    "manual-text": "Mouse Drag - Move Piece\nRight Drag - Do not promote\n\n<Shortcut-Key>\nSpace - Pawn\nQ - Lance  W - Knight  E - Bishop\nA - Silver    S - Gold     D - Rook",
+    "win-condition": "Win con",
+    "online-match": "Online Match",
+    "matching": "Matching",
+    "cancel": "Cancel",
+    "name": "Name",
+    "resign": "Resign",
+    "anonymous": "Anonymous",
+    "change-character": "Character",
+    "make-room": "Create",
+    "join-room": "Join",
+    "join-failed": "Failed to Join Room",
+    "room-id": "Room ID",
+    "cpu-match": "VS.CPU",
+    "level": "Level",
+    "game-count": "Games",
+    "rating": "Rating",
+    "unrated": "Unrated",
+    "rating-change": "Rating",
+    "ranking": "Ranking",
+    "select-character": "Select Character",
+    "submit": "Submit",
+    "start-game": "Start",
+    "move-first": "Move to First",
+    "move-second": "Move to Second",
+    "spectate": "Spectate",
+    "display-room-id": "Display Room ID",
+    "display-room-id-off": "Hide Room ID",
+    "ready": "Ready",
+    "copy": "Copy",
+    "copy-success": "Room ID copied",
+    "failed-copy": "Failed to Copy Room ID",
+    "change-setting": "Change Settings",
+    "max-player": "Max Players: ",
+    "cooldown-first": "First Cooldown : ",
+    "cooldown-second": "Second Cooldown : ",
+    "check": "On",
+    "uncheck": "Off",
+    "leave-room": "Leave Room",
+    "apply": "Apply",
+    "win": "Win",
+    "lose": "Lose",
+    "game-end": "Game End",
+    "resign-win": "Opponent resigned",
+    "resign-lose": "Resigned",
+    "try-rule": "The king has reached the target point",
+    "back": "Back",
+    "characters": {
+        "rei": {
+            "name": "Rei Hizuki",
+            "profile": "A freelance 'problem solver' agent based in the night city, shrouded \nin mystery. Rumored to perfectly fulfill any difficult request, regardless \nof legality, in exchange for a high reward.",
+            "quotes": [
+                "It's time for work.",
+                "I've confirmed the request details.",
+                "You know too much.",
+                "Hesitation is the first step toward defeat.",
+                "I hate wasted time."
+            ],
+            "start_quotes": [
+                "Calculating the shortest route to checkmate."
+            ],
+            "win_quotes": [
+                "An expected result. The calculations are flawless."
+            ]
+        },
+        "aoi": {
+            "name": "Aoi Minase",
+            "profile": "A very ordinary and unremarkable high school girl attending a school \nin the city. However, at night, she transforms into the legendary \ngenius gamer and white hacker 'Cyber Serene'.",
+            "quotes": [
+                "Okay, let's go.",
+                "You're in the line of fire.",
+                "I've analyzed the enemy's composition.",
+                "Yes, thank you for your hard work.",
+                "Login complete."
+            ],
+            "start_quotes": [
+                "Warm-up complete. I'm ready anytime."
+            ],
+            "win_quotes": [
+                "I could see all of your moves."
+            ]
+        },
+        "akira": {
+            "name": "Akira Hinowa",
+            "profile": "A young female owner who runs the members-only hidden jazz bar \n'Solstice'. Her other face is that of a neutral information broker named \n'Oracle', where all kinds of information from the underworld gathers.",
+            "quotes": [
+                "Is the deal sealed, I wonder?",
+                "Please be quiet in my shop.",
+                "Everyone is a pawn of something.",
+                "That's an interesting story. Tell me a bit more.",
+                "Information has value."
+            ],
+            "start_quotes": [
+                "Show me all the cards you're holding."
+            ],
+            "win_quotes": [
+                "I've received my due compensation. Thank you for the meal."
+            ]
+        }
+    }
+}

@@ -1,0 +1,1084 @@
+{
+  "characters": [
+    {
+      "image": "0001_rei",
+      "voice": "A female voice, cool and precise, with a notably low, almost monotone pitch that rarely fluctuates. Her words are delivered with a clipped, efficient cadence, each syllable sharp and devoid of overt emotion. The expressive tone, if any, is one of subtle, steely resolve or a hint of weariness beneath the surface.",
+      "name_jp": "緋月 零",
+      "name_romanji": "Hizuki Rei",
+      "profile": {
+        "nickname_jp": "レイ、ゼロ (裏社会でのコードネーム)",
+        "nickname_en": "Rei, Zero (codename in the underworld)",
+        "age": 20,
+        "birthday": "11月11日",
+        "blood_type": "AB型",
+        "height_cm": 165,
+        "likes": [
+          "ブラックコーヒー (無糖、濃いめ)",
+          "夜の街のネオン、静かな路地裏",
+          "スリルと戦略性を伴う状況、高度な頭脳戦",
+          "シャープなデザインのナイフやカスタムされたガジェット",
+          "激辛の中華料理 (平然と食べる)"
+        ],
+        "dislikes_weaknesses": [
+          "甘ったるいもの全般",
+          "無駄話、非効率な行動、感情論",
+          "馴れ馴れしい態度、束縛、詮索",
+          "日中の強い日差し",
+          "裏切り、不誠実な人間"
+        ],
+        "personality": [
+          "クールでミステリアス。感情をほとんど表に出さず、常にポーカーフェイスを崩さない。",
+          "口数は極めて少なく、必要最低限のことしか話さないが、発する言葉は鋭く的を射ている。",
+          "冷静沈着で分析力に長け、どんな危機的状況でも合理的な判断を下そうとする。",
+          "一見冷徹で近寄りがたいが、一度「守るべき」と定めたものや、ごく稀に心を開いた相手には、内に秘めた熱さや義理堅さを見せることもある。",
+          "自分のテリトリーや仕事道具には強いこだわりがあり、常に完璧な状態を保っている。",
+          "他人に頼ることを好まず、単独で行動することが多い。"
+        ],
+        "skills_talents": [
+          "近接格闘術 (特にナイフを用いた戦闘、素手での制圧術)",
+          "潜入、情報収集、尾行、隠密行動、気配遮断",
+          "バイクや車の運転 (追跡や逃走もお手の物)",
+          "ハッキング、電子機器の操作、暗号解読",
+          "嘘を見抜く洞察力、相手の僅かな変化から本心や弱点を見抜くこと",
+          "狙撃 (状況に応じて)"
+        ],
+        "catchphrases_quotes": [
+          "…仕事の時間だ。",
+          "…これで終わりだ。",
+          "お前は知りすぎた。"
+        ],
+        "background_setting": [
+          "夜の街を拠点とする、謎に包まれたフリーランスの「解決屋」あるいはエージェント。どんな困難な依頼でも、法に触れるか否かを問わず、高額な報酬と引き換えに完璧に遂行すると噂される。",
+          "その過去や正体は一切不明で、裏社会でもその存在は都市伝説のように語られる。コードネーム「ゼロ」または「クリムゾン・ゼロ」と呼ばれることもある（髪の赤いメッシュから）。",
+          "特定の組織には所属せず、独自のネットワークと情報網を持つ。",
+          "彼女に依頼をするには、特殊なルートを通じなければならず、その姿を見た者は少ない。",
+          "髪の赤いメッシュは、彼女がかつて失った何か、あるいは捨てた何かを象徴しているとも言われているが、真実は誰も知らない。",
+          "時に非情な手段も厭わないが、自分なりの「筋」や「美学」を持っているらしい。"
+        ]
+      },
+      "image_description_hint": "銀髪ショート、赤いメッシュ、金色の瞳、黒いチャイナ服風のミリタリージャケット、夜の街、ネオン"
+    },
+    {
+      "image": "0002_karen",
+      "voice": "A female voice, high-pitched and imperious, carrying a distinct aristocratic lilt. Her words are delivered with a sharp, somewhat rapid tempo, often punctuated by indignant huffs or flustered stammers when her true feelings are exposed. The expressive tone veはい、承知いたしました！",
+      "name_jp": "天宮院 華恋",
+      "name_romanji": "Amamiyain Karen",
+      "profile": {
+        "nickname_jp": "カレン様、カレンちゃん (不本意ながら)",
+        "nickname_en": "Lady Karen, Karen-chan (reluctantly)",
+        "age": 18,
+        "birthday": "8月1日 (獅子座)",
+        "blood_type": "B型",
+        "height_cm": 160,
+        "likes": [
+          "最高級の紅茶 (特にダージリンのファーストフラッシュ)",
+          "美しい芸術品、クラシック音楽鑑賞",
+          "乗馬、フェンシング",
+          "自分の思い通りに事が進むこと",
+          "実は可愛い動物のぬいぐるみ (秘密)"
+        ],
+        "dislikes_weaknesses": [
+          "庶民的な食べ物 (と本人は言うが、隠れてB級グルメを試すことも)",
+          "無礼な態度、品のない振る舞い",
+          "予定を乱されること、自分のペースを崩されること",
+          "素直になれないこと (ツンデレ)",
+          "虫全般"
+        ],
+        "personality": [
+          "高飛車でプライドが高いお嬢様。典型的なツンデレ。",
+          "言葉遣いは丁寧だが、どこか上から目線。",
+          "負けず嫌いで、何事も一番でないと気が済まない。",
+          "根は優しく情にもろいが、素直にそれを見せられない不器用さを持つ。",
+          "世間知らずな一面があり、時折ズレた発言をすることも。"
+        ],
+        "skills_talents": [
+          "優れた記憶力と分析力 (学業は常にトップクラス)",
+          "ピアノ演奏 (コンクール入賞経験多数)",
+          "社交ダンス、テーブルマナー",
+          "語学堪能 (数カ国語を操る)",
+          "意外と手先が器用で、細かい作業が得意"
+        ],
+        "catchphrases_quotes": [
+          "わたくしを誰だとお思いですの？",
+          "べ、別にあなたのためにやったわけじゃないんですからね！",
+          "ふん、当然の結果ですわ。"
+        ],
+        "background_setting": [
+          "国内外に影響力を持つ大財閥「天宮院グループ」の令嬢。",
+          "幼い頃から英才教育を受け、何不自由なく育ってきた。",
+          "社交界デビューを間近に控え、花嫁修業の一環として様々なことを学んでいるが、本人はもっと自由な世界に憧れている。",
+          "庶民の生活に興味津々だが、プライドが邪魔して素直にそれを表に出せない。"
+        ]
+      },
+      "image_description_hint": "金髪縦ロール、緑色の瞳、赤い大きなリボン、白いフリルドレス、腕組み、豪華な洋室、ティーカップ"
+    },
+    {
+      "image": "0003_mifuyu",
+      "voice": "A female voice that is calm, serene, and possesses a subtly low, soothing pitch. Her delivery is unhurried and deliberate, each word spoken with a gentle yet profound clarity, as if revealing ancient truths. The tone carries a mysterious depth, like the tranquil gaze of a night sky, subtly hinting at hidden knowledge and a timeless wisdom. There's a delicate balance between a soft, almost whisper-like quality and an underlying resonance that makes her words feel both ethereal and deeply grounded. Her voice is like the gentle rustle of leaves in a moonlit forest, both present and elusive.",
+      "name_jp": "月詠 深冬",
+      "name_romanji": "Tsukiyomi Mifuyu",
+      "profile": {
+        "nickname_jp": "ミフユさん、夜の猫 (よるのねこ)",
+        "nickname_en": "Ms. Mifuyu, Night Cat",
+        "age": "不詳 (見た目は20歳前後)",
+        "birthday": "12月22日 (冬至)",
+        "blood_type": "AB型 Rh-null (極めて稀)",
+        "height_cm": 162,
+        "likes": [
+          "月光浴、星空観察",
+          "古い書物、神秘的な遺物",
+          "ハーブティー、静寂",
+          "猫 (特に黒猫)",
+          "人の知らない秘密や真実を探求すること"
+        ],
+        "dislikes_weaknesses": [
+          "騒がしい場所、詮索好きな人間",
+          "強い日光 (少し苦手)",
+          "甘すぎるお菓子",
+          "自分の力を無闇に使うこと",
+          "予測不可能な偶然 (稀に楽しむが基本的には好まない)"
+        ],
+        "personality": [
+          "ミステリアスで掴みどころがない。穏やかだが、どこか超然とした雰囲気を持つ。",
+          "物腰は柔らかいが、核心を突く鋭い言葉を発する。",
+          "好奇心旺盛で探求心が強いが、他人に深入りすることは少ない。",
+          "猫のように気まぐれで、ふらりと現れては消える。",
+          "運命や人の縁といったものに深い関心を持っている。"
+        ],
+        "skills_talents": [
+          "占術 (タロット、占星術、ルーンなど多岐にわたる)",
+          "呪術や魔法に関する深い知識 (実践も可能)",
+          "霊視、未来予知 (断片的)",
+          "薬草やポーションの調合",
+          "気配を消して行動すること"
+        ],
+        "catchphrases_quotes": [
+          "星の導きが、あなたに何かを伝えようとしていますわ。",
+          "ふふ…運命の歯車は、回り始めたようですね。",
+          "真実は、いつも闇の中に隠されているものです。"
+        ],
+        "background_setting": [
+          "人里離れた森の奥深く、あるいは忘れ去られた古都の片隅で、ひっそりと暮らす占い師、あるいは魔女。",
+          "その出自や年齢は一切不明で、古くから存在しているという噂もある。",
+          "時には人々の相談に乗ったり、運命の岐路に立つ者に助言を与えるが、その目的は謎に包まれている。",
+          "猫耳のようなフードは、彼女の使い魔である猫と意思疎通するためのもの、あるいは彼女自身が猫の魂を持つ存在であるという説も。"
+        ]
+      },
+      "image_description_hint": "銀髪ロング、オッドアイ(赤と青)、猫耳フード付き黒ローブ、杖、カード、ミステリアスな森"
+    },
+    {
+      "image": "0004_kureha",
+      "voice": "A female voice with a distinctive medium-low pitch, carrying a raw, slightly husky edge that suggests a life lived on the streets. Her delivery is often direct and sharp, with a confident, almost defiant cadence. Each word is imbued with a blunt force and an underlying air of challenge, occasionally bordering on a sneer when provoked. Her tone can shift between a casual, rough-and-tumble quality and a powerful, unyielding roar, reflecting her fiery spirit and battle-hardened nature. There's an undeniable \"don't mess with me\" attitude that resonates in her every utterance.",
+      "name_jp": "紅刃 椿",
+      "name_romanji": "Kureha Tsubaki",
+      "profile": {
+        "nickname_jp": "クレハ、赤椿 (あかつばき)",
+        "nickname_en": "Kureha, Red Camellia",
+        "age": 21,
+        "birthday": "1月15日",
+        "blood_type": "O型",
+        "height_cm": 170,
+        "likes": [
+          "スリル、喧嘩 (強い相手と戦うこと)",
+          "バイクで夜の街を疾走すること",
+          "ロックミュージック、ライブハウス",
+          "ジャンクフード (特に辛いラーメン)",
+          "仲間と過ごす時間 (素直には言えない)"
+        ],
+        "dislikes_weaknesses": [
+          "退屈、束縛、指図されること",
+          "権力やルールを振りかざす人間",
+          "甘いもの、可愛らしいもの (少し苦手意識)",
+          "朝早く起きること",
+          "自分の弱さを見せること"
+        ],
+        "personality": [
+          "喧嘩っ早く、直情的で姐御肌。竹を割ったような性格。",
+          "口は悪いが、面倒見が良く仲間思い。",
+          "自由奔放で、自分の信念を曲げない。",
+          "見た目に反して、意外と照れ屋な一面も。",
+          "正義感が強く、弱い者いじめは許さない。"
+        ],
+        "skills_talents": [
+          "我流剣術 (背負った得物を使用)",
+          "ストリートファイト、サバイバル術",
+          "バイクの運転とメンテナンス",
+          "驚異的な身体能力と反射神経",
+          "ハッタリと啖呵を切るのが得意"
+        ],
+        "catchphrases_quotes": [
+          "アタシの道はアタシが決める！",
+          "ったく、世話が焼けるねぇ！"
+        ],
+        "background_setting": [
+          "夜の街の路地裏を縄張りとする、一匹狼のストリートファイター。",
+          "かつてはとあるチームに所属していたが、何らかの理由で抜けて現在は単独で行動しているという噂。",
+          "「赤椿」の異名は、彼女の髪の色と、戦い方がまるで赤い椿の花が散るように鮮やかだからだとか。",
+          "弱い者からは慕われ、悪党からは恐れられている存在。"
+        ]
+      },
+      "image_description_hint": "黒髪ショート赤メッシュ、赤い瞳、露出度高めのパンクファッション、背中に刀、路地裏、ネオン"
+    },
+    {
+      "image": "0005_setsuna",
+      "voice": "A female voice with a clear, precise, and medium pitch. Her delivery is calm and measured, often bordering on a cool detachment, yet capable of conveying intense focus and a subtle passion when discussing technical subjects. Each word is articulated with a clean, analytical quality, reflecting her logical mind. While generally unexpressive, there's an underlying confidence and authority that makes her statements feel absolute and unarguable. Her tone is efficient and direct, like a perfectly calibrated machine, with minimal wasted energy, yet occasionally a hint of impatience or exasperation can be detected in her otherwise composed delivery.",
+      "name_jp": "柊 雪菜",
+      "name_romanji": "Hiiragi Setsuna",
+      "profile": {
+        "nickname_jp": "セツナ、ドクター・ギア",
+        "nickname_en": "Setsuna, Dr. Gear",
+        "age": 22,
+        "birthday": "2月10日 (ニットの日…だが本人は機械いじりの方が好き)",
+        "blood_type": "B型",
+        "height_cm": 163,
+        "likes": [
+          "機械いじり、新しいメカの開発・設計",
+          "エナジードリンク、夜食のカップ麺",
+          "機能美にあふれたデザイン",
+          "パズルや難解な問題を解くこと",
+          "自分の作ったメカが活躍すること"
+        ],
+        "dislikes_weaknesses": [
+          "非効率な作業、アナログな手法 (場合による)",
+          "長時間の会議、事務作業",
+          "人付き合い (少し苦手意識、メカの方が話しやすい)",
+          "徹夜明けの朝日",
+          "説明書を読まない人"
+        ],
+        "personality": [
+          "クールでぶっきらぼうだが、根は真面目な努力家。",
+          "メカのことになると饒舌になり、熱く語り出す。",
+          "集中すると周りが見えなくなるほどの没頭タイプ。",
+          "合理主義者で、無駄を嫌う。",
+          "仲間や自分の作ったものを大切にする情の厚さも持つ。"
+        ],
+        "skills_talents": [
+          "機械工学、電子工学に関する高度な知識と技術",
+          "ロボットやAIの設計・開発・プログラミング",
+          "あらゆる機械の修理・改造",
+          "即興での発明や応急処置",
+          "空間認識能力と精密な作業精度"
+        ],
+        "catchphrases_quotes": [
+          "この程度のエラー、私にかかれば数分だ。",
+          "理論上は可能だ…やってみる価値はある。",
+          "私の相棒（メカ）をなめるなよ。"
+        ],
+        "background_setting": [
+          "若き天才エンジニア。個人で小さな工房を構えているか、あるいはどこかの研究機関に所属している。",
+          "幼い頃から機械に囲まれて育ち、自然とメカニックの道を志した。",
+          "数々の革新的な発明で業界から注目されているが、本人は名声よりも自分の探求心を満たすことを優先している。",
+          "時に危険な実験に没頭し、周囲をハラハラさせることも。"
+        ]
+      },
+      "image_description_hint": "銀髪ポニーテール、青い瞳、ゴーグル、作業着、メカ、ホログラム、SF風"
+    },
+    {
+      "image": "0006_kirisaki",
+      "voice": "A female voice with a clear, precise, and medium-high pitch, conveying an air of calm intelligence and keen observation. Her delivery is measured and deliberate, with each word articulated distinctly and without unnecessary embellishment, reflecting a highly logical mind. The tone is cool and composed, almost devoid of overt emotion, yet carries an undeniable undercurrent of quiet confidence and unshakeable conviction. Her voice suggests someone who is constantly analyzing, processing, and arriving at irrefutable conclusions, making her words feel both authoritative and subtly distant.",
+      "name_jp": "霧咲 透子",
+      "name_romanji": "Kirisaki Touko",
+      "profile": {
+        "nickname_jp": "キリサキさん、探偵さん",
+        "nickname_en": "Ms. Kirisaki, Detective",
+        "age": 17,
+        "birthday": "1月6日 (シャーロック・ホームズの誕生日と同じ)",
+        "blood_type": "AB型",
+        "height_cm": 160,
+        "likes": [
+          "難解な事件、謎解き",
+          "古い推理小説、探偵映画",
+          "ブラックコーヒー、ビターチョコレート",
+          "静かな場所で思考を巡らせること",
+          "真実が明らかになる瞬間"
+        ],
+        "dislikes_weaknesses": [
+          "単純作業、非論理的な話",
+          "人混み、騒がしい場所",
+          "感情的な議論",
+          "自分の推理が外れること (滅多にないがプライドが許さない)",
+          "運動 (体力には自信がない)"
+        ],
+        "personality": [
+          "クールで知的、常に冷静沈着な少女探偵。",
+          "観察眼が鋭く、僅かな手がかりも見逃さない。",
+          "口数は少ないが、発言は的確で論理的。",
+          "他人にあまり興味を示さないように見えるが、困っている人を見ると放っておけない正義感も持つ。",
+          "自分の推理には絶対的な自信を持っている。"
+        ],
+        "skills_talents": [
+          "卓越した推理力と洞察力",
+          "プロファイリング、行動分析",
+          "記憶力 (見たもの聞いたものを細部まで覚えている)",
+          "変装 (簡単なものなら)",
+          "鍵開け (必要に迫られて覚えた)"
+        ],
+        "catchphrases_quotes": [
+          "…なるほど、そういうことですか。",
+          "犯人は、あなたですね。",
+          "全てのピースは揃いました。"
+        ],
+        "background_setting": [
+          "名門高校に通う傍ら、難事件を解決に導く「高校生探偵」として知られる。",
+          "警察関係者の父親の影響で、幼い頃から事件や推理に興味を持っていた。",
+          "依頼があれば、どんな複雑な事件でも持ち前の頭脳で解決していく。",
+          "その鋭すぎる推理ゆえに、時に周囲から孤立することもあるが、本人は気にしていない。"
+        ]
+      },
+      "image_description_hint": "黒髪ショートボブ、グレーの瞳、眼鏡、黒いトレンチコート、白いシャツ、ネクタイ、懐中時計、夜の路地、図書館"
+    },
+    {
+      "image": "0007_sylvie",
+      "voice": "A female voice that is clear, serene, and possesses a refined, medium pitch, imbued with a timeless, ethereal quality. Her delivery is calm and measured, each word articulated with a gentle yet firm cadence, as if carrying the wisdom of ages and the tranquility of the forest. The tone is deeply resonant and pure, evoking images of sunlight filtering through leaves and the quiet strength of ancient trees. Her voice conveys both profound gentleness and an unwavering resolve, often accompanied by a subtle, almost melodic undertone that speaks of harmony with nature.",
+      "name_jp": "シルヴァン・月桂樹（げっけいじゅ）",
+      "name_romanji": "Sylvain Gekkeiju",
+      "profile": {
+        "nickname_jp": "森の守り手、シルヴィ",
+        "nickname_en": "Guardian of the Forest, Sylvie",
+        "age": "127歳 (エルフ基準では若年)",
+        "birthday": "新緑の月の最初の満月",
+        "blood_type": "不明 (エルフ特有)",
+        "height_cm": 175,
+        "likes": [
+          "森の静寂、動物たちとの対話",
+          "星空の下での瞑想、古い歌",
+          "手作りの薬草、木の実のパイ",
+          "弓の手入れ、風の音を聞くこと"
+        ],
+        "dislikes_weaknesses": [
+          "森を汚す者、無意味な殺生",
+          "騒がしい都市、鉄の匂い",
+          "嘘や裏切り",
+          "閉所 (少し息苦しく感じる)"
+        ],
+        "personality": [
+          "冷静沈着で、森の知恵に長けたエルフのレンジャー。",
+          "物静かだが、森の仲間や守るべきものに対しては強い意志と優しさを見せる。",
+          "自然と調和し、その声を聞くことができる。",
+          "人間に対しては警戒心が強いが、純粋な心を持つ者には心を開くことも。",
+          "長い時を生きるエルフらしく、達観したような落ち着きがある。"
+        ],
+        "skills_talents": [
+          "弓術の達人 (百発百中)",
+          "隠密行動、追跡、サバイバル術",
+          "薬草学、動物とのコミュニケーション",
+          "森の中での方向感覚、天候予測",
+          "古代エルフの魔法（治癒や自然操作系のごく一部）"
+        ],
+        "catchphrases_quotes": [
+          "森の声が、私に告げています。",
+          "この矢は、森の怒りを乗せている。",
+          "自然の理に従いなさい。"
+        ],
+        "background_setting": [
+          "古代から続くエルフの森の守護者の一族。",
+          "幼い頃からレンジャーとしての訓練を受け、森と共に生きてきた。",
+          "森のバランスを脅かす存在が現れた時、その弓を取る。",
+          "外界との接触は少ないが、時折森を訪れる旅人から世界の出来事を知る。"
+        ]
+      },
+      "image_description_hint": "銀髪（やや緑がかった）の編み込みロング、緑色の瞳、エルフ耳、緑のケープ、弓と矢、森の中、木漏れ日"
+    },
+    {
+      "image": "0008_red",
+      "voice": "A female voice that is powerful, rich, and resonates with a commanding medium-low pitch. Her delivery is bold and energetic, capable of booming across a deck or settling into a more intimate, yet still confident, tone. There's a slight huskiness or a hint of a gravelly edge, suggesting a life spent braving the elements and hearty shouts. Her voice embodies a spirit of adventure and unyielding resolve, often carrying a boisterous cheerfulness, but with an underlying steel that demands respect and implies no-nonsense leadership. It's a voice that can inspire loyalty, strike fear into enemies, and lead a rousing sea shanty with equal ease.",
+      "name_jp": "スカーレット・“レッドストーム”・ドレイク",
+      "name_romanji": "Scarlett \"Red Storm\" Drake",
+      "profile": {
+        "nickname_jp": "レッド、船長",
+        "nickname_en": "Red, Captain",
+        "age": 28,
+        "birthday": "嵐の夜 (正確な日付は本人も知らない)",
+        "blood_type": "B型 Rh+",
+        "height_cm": 172,
+        "likes": [
+          "自由な航海、海の匂い、冒険",
+          "ラム酒、豪快な宴会、歌",
+          "宝探し、新しい発見",
+          "信頼できる仲間、自分の船",
+          "強い相手とのスリリングな戦い"
+        ],
+        "dislikes_weaknesses": [
+          "海軍、権威、束縛",
+          "裏切り者、卑怯な手口",
+          "退屈な陸での生活",
+          "甘すぎるお菓子 (酒のつまみにならないから)",
+          "幽霊（信じていないと強がるが…）"
+        ],
+        "personality": [
+          "大胆不敵でカリスマ性溢れる女海賊船長。",
+          "姐御肌で面倒見が良く、船員たちからは絶大な信頼を得ている。",
+          "自由を何よりも愛し、自分の信念を貫く。",
+          "豪快で竹を割ったような性格だが、時には冷静な判断力も見せる。",
+          "お宝と冒険のためなら、どんな危険も顧みない。"
+        ],
+        "skills_talents": [
+          "卓越した剣術 (カットラスの達人)",
+          "操船術、航海術、天候予測",
+          "射撃 (フリントロックピストル)",
+          "リーダーシップ、人心掌握術",
+          "ハッタリと交渉術"
+        ],
+        "catchphrases_quotes": [
+          "お宝目指して出航だ！",
+          "アタシの船に手出しするヤツは、海の藻屑にしてやるよ！",
+          "自由こそが、海賊の生きる道さ！"
+        ],
+        "background_setting": [
+          "七つの海を股にかける海賊船「レッドストーム号」の船長。",
+          "かつては別の海賊団にいたが、その非道なやり方に反発し、仲間と共に独立した。",
+          "数々の伝説的なお宝を見つけ出し、その名は海賊たちの間でも轟いている。",
+          "彼女の赤い髪は「嵐を呼ぶ赤」として恐れられ、また憧れの的でもある。"
+        ]
+      },
+      "image_description_hint": "赤髪の編み込みロング、赤い瞳、眼帯、海賊の船長服、カットラス、海賊船の甲板、荒れた海"
+    },
+    {
+      "image": "0009_hawk",
+      "voice": "A female voice with a clear, calm, and composed medium-low pitch. Her delivery is remarkably steady and precise, often minimalistic and devoid of overt emotional inflection, reflecting her focused and analytical mind. Each word is articulated with clean, efficient clarity, conveying a professional detachment. There's an underlying tautness or quiet intensity, like a finely tuned instrument, that hints at immense concentration and an unyielding will. Her voice rarely wavers, embodying a silent strength and the absolute certainty of a skilled sniper.",
+      "name_jp": "シエラ・“ナイトホーク”・アームストロング",
+      "name_romanji": "Sierra \"Nighthawk\" Armstrong",
+      "profile": {
+        "nickname_jp": "ホーク、ナイト",
+        "nickname_en": "Hawk, Night",
+        "age": 24,
+        "birthday": "11月30日",
+        "blood_type": "A型",
+        "height_cm": 168,
+        "likes": [
+          "完璧な狙撃、精密機械の手入れ",
+          "静寂、夜景、ブラックコーヒー",
+          "チェスや将棋などの戦略ゲーム",
+          "孤独な時間、読書（ミリタリー関連）"
+        ],
+        "dislikes_weaknesses": [
+          "無駄口、感情的な判断",
+          "予期せぬアクシデント、計画の変更",
+          "人混み、注目されること",
+          "甘いもの (集中力が鈍る気がする)",
+          "自分の過去について触れられること"
+        ],
+        "personality": [
+          "寡黙で冷静沈着、感情を表に出さないプロフェッショナルなスナイパー。",
+          "任務遂行のためなら非情になれるが、心の奥底には仲間意識も持つ。",
+          "観察眼に優れ、僅かな情報からでも状況を正確に把握する。",
+          "孤独を好むが、信頼できる相手には心を開くこともある。",
+          "一度決めた標的は決して逃さないという強い意志を持つ。"
+        ],
+        "skills_talents": [
+          "超長距離狙撃、精密射撃",
+          "隠密行動、サバイバル術、トラップ設置",
+          "武器のカスタマイズとメンテナンス",
+          "戦術分析、状況判断能力",
+          "精神集中、忍耐力"
+        ],
+        "catchphrases_quotes": [
+          "ターゲット、ロックオン…。",
+          "一発で終わらせる。",
+          "…サイレントキル。"
+        ],
+        "background_setting": [
+          "ある国の特殊部隊に所属していた元エーススナイパー。現在はフリーランスの傭兵として活動。",
+          "過去の任務で何か大きなトラウマを抱えているらしく、その詳細は謎に包まれている。",
+          "「ナイトホーク」のコードネームは、夜間の任務におけるその卓越した能力から名付けられた。",
+          "高額な報酬で困難な暗殺任務や警護任務を請け負う。"
+        ]
+      },
+      "image_description_hint": "グレー系のショートヘア、青い瞳、ゴーグル、ヘッドセット、迷彩服、スナイパーライフル、都市の屋上、夕焼け"
+    },
+    {
+      "image": "0010_shizuru",
+      "voice": "A female voice with a clear, gentle, and medium-high pitch. Her delivery is calm, soft, and unhurried, reflecting her serene and polite demeanor. The tone is pure and exquisitely refined, evoking a sense of tranquil elegance and spiritual grace, like the gentle chime of a temple bell. While inherently gentle, there's a subtle underlying warmth and sincere earnestness that conveys her pure heart and deep compassion, making her words feel both ethereal and deeply comforting.",
+      "name_jp": "神楽月 詩鶴（かぐらづき しづる）",
+      "name_romanji": "Kagurazuki Shizuru",
+      "profile": {
+        "nickname_jp": "しづる様、詩鶴さん",
+        "nickname_en": "Lady Shizuru, Shizuru-san",
+        "age": 19,
+        "birthday": "6月15日 (紫陽花の頃)",
+        "blood_type": "A型",
+        "height_cm": 160,
+        "likes": [
+          "神事、神楽舞、清らかな水",
+          "和歌、書道、お琴の音色",
+          "境内の静寂、木漏れ日、季節の草花",
+          "参拝者との穏やかな会話",
+          "手作りの和菓子（特に白玉ぜんざい）"
+        ],
+        "dislikes_weaknesses": [
+          "不浄なもの、争いごと",
+          "騒がしい場所、無礼な振る舞い",
+          "嘘、偽り",
+          "人前に出ること（少し緊張しい）",
+          "虫（特に足がたくさんあるもの）"
+        ],
+        "personality": [
+          "物静かで奥ゆかしく、清らかな心を持つ巫女。",
+          "誰に対しても丁寧で、優しい笑顔を絶やさない。",
+          "神仏を深く敬い、日々の奉仕に真摯に取り組む。",
+          "少し天然なところがあり、時折周囲を和ませる。",
+          "強い信念と、人々を癒す不思議な力を持っている。"
+        ],
+        "skills_talents": [
+          "神楽舞（奉納舞は神々を鎮めると言われる）",
+          "祝詞の奏上、お祓い",
+          "おみくじの解釈、悩み相談（的確な助言を与える）",
+          "書道、華道、茶道",
+          "微かな霊的な気配を感じ取る力"
+        ],
+        "catchphrases_quotes": [
+          "神様のご加護がありますように。",
+          "どうぞ、心安らかにお過ごしくださいませ。",
+          "清き心に、福は来たるものにございます。"
+        ],
+        "background_setting": [
+          "古くから続く由緒ある神社の神主の娘。次期当主として期待されている。",
+          "幼い頃から巫女としての修行を積み、神聖な力と深い知識を身につけてきた。",
+          "訪れる人々の悩みを聞き、その心を癒すことで知られ、「癒やしの巫女」として慕われている。",
+          "時折、神託を受け、村の危機を救ったという伝説もある。"
+        ]
+      },
+      "image_description_hint": "黒髪ロング、紫の瞳、白いリボン、巫女服（白衣に緋袴）、神社の境内、鳥居、木漏れ日"
+    },
+    {
+      "image": "0011_kanade",
+      "voice": "A female voice that is clear, refined, and possesses a beautiful, resonant medium pitch, akin to the elegant notes of a violin. Her delivery is typically calm and composed, with a delicate grace that suggests artistic precision and deep introspection. While usually serene and poised, her voice holds an underlying current of profound passion that surfaces when she speaks of music, allowing for moments of soaring emotional intensity or a quiet, vibrant warmth. Her tone is both intellectually sharp and profoundly expressive, capable of conveying complex emotions with an understated yet captivating beauty.",
+      "name_jp": "音羽 奏（おとわ かなで）",
+      "name_romanji": "Otowa Kanade",
+      "profile": {
+        "nickname_jp": "カナデ、マエストラ",
+        "nickname_en": "Kanade, Maestra",
+        "age": 22,
+        "birthday": "5月25日 (音楽祭の日)",
+        "blood_type": "AB型",
+        "height_cm": 166,
+        "likes": [
+          "ヴァイオリン演奏、クラシック音楽全般",
+          "オーケストラとの共演、観客の拍手",
+          "美しい旋律、作曲（趣味）",
+          "歴史ある楽器、古い楽譜",
+          "静かなカフェでの読書（音楽史など）"
+        ],
+        "dislikes_weaknesses": [
+          "騒音、音楽を冒涜する行為",
+          "才能の無駄遣い、練習を怠ること",
+          "プレッシャー（表には出さないが、人一倍感じる）",
+          "自分の演奏に納得がいかない時",
+          "方向音痴（よく楽屋で迷う）"
+        ],
+        "personality": [
+          "情熱的で、音楽に対して非常に真摯な天才ヴァイオリニスト。",
+          "普段は物静かでクールビューティーだが、一度ヴァイオリンを手に取ると人が変わったように情熱的な演奏を見せる。",
+          "努力家で、常に完璧な演奏を目指しているストイックな一面も。",
+          "感受性が豊かで、音楽を通して様々な感情を表現する。",
+          "少し天然で世間知らずなところがあり、日常生活では抜けていることも。"
+        ],
+        "skills_talents": [
+          "超絶技巧のヴァイオリン演奏",
+          "絶対音感、優れた音楽的記憶力",
+          "即興演奏、作曲・編曲の才能",
+          "オーケストラの指揮（稀に）",
+          "楽器のメンテナンスと調整"
+        ],
+        "catchphrases_quotes": [
+          "この一音に、私の全てを込めて…。",
+          "音楽は、言葉を超える魂の対話です。",
+          "さあ、始めましょうか。至高の旋律を。"
+        ],
+        "background_setting": [
+          "世界的に有名な若きヴァイオリニスト。数々の国際コンクールで優勝経験を持つ。",
+          "幼少期からその才能を発揮し、神童と呼ばれてきた。",
+          "世界中の著名なオーケストラと共演し、その演奏は聴く者の魂を揺さぶると言われる。",
+          "現在はソリストとして活動しつつ、後進の指導にも時折あたっている。"
+        ]
+      },
+      "image_description_hint": "赤茶色のロングヘア、緑色の瞳、青いロングドレス、ヴァイオリン演奏、コンサートホール、スポットライト"
+    },
+    {
+      "image": "0012_komugi",
+      "voice": "A female voice that is notably bright, effervescent, and sweet with a high, clear pitch. Her delivery is cheerfully eager, often carrying a slight, endearing lilt and an upward inflection at the end of phrases that conveys youthful innocence and an earnest, almost slightly flustered charm. The tone is exceptionally warm and inviting, akin to the comforting aroma of freshly baked bread, consistently radiating optimism and genuine kindness. Her voice is infused with a bubbly enthusiasm that makes her instantly approachable and heartwarming.",
+      "name_jp": "麦畑 こむぎ（むぎばたけ こむぎ）",
+      "name_romanji": "Mugibatake Komugi",
+      "profile": {
+        "nickname_jp": "こむぎちゃん、パンの天使",
+        "nickname_en": "Komugi-chan, Bread Angel",
+        "age": 17,
+        "birthday": "4月18日 (パンの記念日)",
+        "blood_type": "O型",
+        "height_cm": 153,
+        "likes": [
+          "焼きたてのパンの香り、パン作り",
+          "お客さんの笑顔、賑やかなお店",
+          "新しいパンのレシピを考えること",
+          "ピクニック（手作りパンを持って）",
+          "ふわふわしたもの（パン生地、動物など）"
+        ],
+        "dislikes_weaknesses": [
+          "パンが焦げること、失敗作",
+          "早起き（でも頑張る）",
+          "難しい計算（レジ打ちは少し苦手）",
+          "お客さんがいない静かなお店",
+          "カラス（パンを狙われるから）"
+        ],
+        "personality": [
+          "明るく元気で、ちょっぴりドジなパン屋の看板娘。",
+          "パンに対する愛情は誰にも負けない。",
+          "人懐っこく、誰とでもすぐに打ち解けられる。",
+          "一生懸命だが、時々空回りしてしまうことも。",
+          "美味しいパンでみんなを幸せにしたいと心から願っている。"
+        ],
+        "skills_talents": [
+          "パン作り全般（特に菓子パンが得意）",
+          "パン生地の発酵具合を見極める嗅覚",
+          "お客さんを笑顔にする接客",
+          "独創的なパンのアイデア",
+          "重い小麦粉の袋も運べる意外な力持ち"
+        ],
+        "catchphrases_quotes": [
+          "焼きたてパン、いかがですかー！",
+          "えへへ、心を込めて作りました！",
+          "このパンで、みんなが笑顔になりますように！"
+        ],
+        "background_setting": [
+          "町で人気のパン屋「ベーカリー・むぎばたけ」の店主の娘。",
+          "幼い頃からパン作りに親しみ、お店の手伝いをしている。",
+          "彼女が考案した新作パンはいつも大人気。",
+          "将来は自分のパンで世界中の人を笑顔にするのが夢。"
+        ]
+      },
+      "image_description_hint": "薄茶色のツインテール、青い瞳、チェックのリボン、エプロン、パンの入ったカゴ、パン屋の店内"
+    },
+    {
+      "image": "0013_chris",
+      "voice": "A female voice that is clear, calm, and possesses a refined, medium-low pitch, with an ethereal, almost crystalline quality. Her delivery is measured and deliberate, each word articulated with a cool precision that suggests immense control and deep thought. While often devoid of overt emotion, there is a subtle, almost fragile undertone of profound depth or hidden sorrow, like the faint echo in an ice cave. Her voice conveys both a serene detachment and a quiet, ancient power, capable of chilling and, for those who listen closely, a delicate, hidden warmth.",
+      "name_jp": "クリスタリア・フロストハート",
+      "name_romanji": "Crystalia Frostheart",
+      "profile": {
+        "nickname_jp": "クリス、氷の姫君",
+        "nickname_en": "Chris, Ice Princess",
+        "age": "不明（見た目は19歳前後）",
+        "birthday": "冬至の日",
+        "blood_type": "不明（特殊な魔力を持つ）",
+        "height_cm": 165,
+        "likes": [
+          "氷の造形、静かな雪景色",
+          "冷たい空気、星が綺麗な冬の夜空",
+          "アイスクリーム、シャーベット",
+          "美しい結晶、氷の彫刻",
+          "信頼できる数少ない理解者"
+        ],
+        "dislikes_weaknesses": [
+          "暑さ、直射日光",
+          "騒がしい場所、馴れ馴れしい態度",
+          "自分の力を制御できないこと（過去のトラウマ）",
+          "溶けてしまうもの",
+          "孤独（強がっているが本当は寂しがり）"
+        ],
+        "personality": [
+          "クールでミステリアス、近寄りがたい雰囲気を纏う氷の魔導士。",
+          "感情を表に出すことは少ないが、内面には繊細さと優しさを秘めている。",
+          "強力な氷の魔法を操るが、その力を恐れて周囲と距離を置いている。",
+          "冷静沈着で、何事にも動じないように見える。",
+          "一度心を開いた相手には、深い信頼と愛情を示す。"
+        ],
+        "skills_talents": [
+          "高度な氷結魔法（攻撃、防御、創造）",
+          "冷気操作、天候操作（限定的）",
+          "氷のゴーレムや使い魔の生成",
+          "魔力感知、危機察知能力",
+          "氷上での高速移動"
+        ],
+        "catchphrases_quotes": [
+          "全てを凍てつかせてあげる…。",
+          "私の心まで凍らせないで。",
+          "この冷たさが、私を守ってくれるの。"
+        ],
+        "background_setting": [
+          "北方の氷雪地帯に隠れ住む、古代から続く氷の一族の末裔、あるいは強力な氷の精霊。",
+          "かつてその強大すぎる力で悲劇を引き起こした過去があり、人との関わりを避けている。",
+          "彼女の周りは常に冷気に包まれており、触れるものを凍らせてしまうこともある。",
+          "自分の力を完全に制御し、誰かを守るために使えるようになることを願っている。"
+        ]
+      },
+      "image_description_hint": "水色/銀色のロングヘア、青い瞳、白いファー付きのドレス、氷の結晶、氷の魔法、氷雪地帯"
+    },
+    {
+      "image": "0014_lily",
+      "voice": "A female voice that is exquisitely clear, soft, and possesses a delicate, medium-high pitch. Her delivery is unhurried and gracefully measured, with each word articulated with meticulous precision, as if each syllable is a precious, fragile ornament. The tone is refined and subtle, carrying an ethereal, almost doll-like perfection, yet beneath this pristine surface lies a profound, melancholic beauty and a hint of hidden, deeply held emotions. Her voice embodies a mysterious elegance, like the delicate chime of an antique music box, both enchanting and slightly otherworldly.",
+      "name_jp": "リリアン・ドールハート",
+      "name_romanji": "Lilian Dollheart",
+      "profile": {
+        "nickname_jp": "リリィ、人形姫",
+        "nickname_en": "Lily, Doll Princess",
+        "age": "18歳（精神年齢はもっと上かもしれない）",
+        "birthday": "10月31日（ハロウィン）",
+        "blood_type": "不明",
+        "height_cm": 158,
+        "likes": [
+          "美しい人形、アンティークドール",
+          "ゴシックロリータファッション、レースやフリル",
+          "静かな部屋での読書（幻想文学、詩集）",
+          "紅茶と焼き菓子、オルゴールの音色",
+          "魂を込めて人形を作ること"
+        ],
+        "dislikes_weaknesses": [
+          "騒がしい場所、品のない振る舞い",
+          "人形をぞんざいに扱う人",
+          "強い日差し、暑さ",
+          "自分の感情をうまく表現すること",
+          "孤独（人形が唯一の友達だった時期がある）"
+        ],
+        "personality": [
+          "物静かでミステリアス、どこか儚げな雰囲気を持つゴシックロリータの人形師。",
+          "人形に深い愛情を注ぎ、まるで生きているかのように接する。",
+          "繊細で感受性が豊かだが、感情を表に出すのが苦手。",
+          "アンティークなものや美しいものを好み、独特の美意識を持つ。",
+          "少し浮世離れしており、不思議な言動をすることも。"
+        ],
+        "skills_talents": [
+          "精巧な人形制作（衣装デザインから造形まで全て行う）",
+          "人形に魂を込める（と噂される）特殊な技術",
+          "裁縫、刺繍、レース編み",
+          "アンティークドールの鑑定と修復",
+          "不思議な力で人形を操る（かもしれない）"
+        ],
+        "catchphrases_quotes": [
+          "この子も、きっとあなたとお話ししたがっていますわ…。",
+          "魂のない人形なんて、ただのガラクタですもの。",
+          "永遠の美しさを、この子たちに…。"
+        ],
+        "background_setting": [
+          "古都の片隅に佇むアンティークドールショップの若き店主、あるいは名門人形師の家系の一人娘。",
+          "幼い頃から人形に囲まれて育ち、人形と心を通わせる特別な才能を持つ。",
+          "彼女が作る人形には魂が宿ると言われ、一部の収集家の間では高値で取引されている。",
+          "夜な夜な人形たちとお茶会を開いているという噂も…。"
+        ]
+      },
+      "image_description_hint": "黒髪ロング（姫カット）、赤い瞳、ゴシックロリータドレス（紫と黒）、アンティークドールを抱える、薄暗いアンティークな部屋、蝋燭"
+    },
+    {
+      "image": "0015_coco",
+      "voice": "A female voice that is notably bright, energetic, and possesses a high, eager pitch. Her delivery is fast-paced and effervescent, brimming with cheerful enthusiasm and an adventurous spirit, often carrying a slight, endearing hurriedness. The tone is consistently optimistic, friendly, and lively, conveying a sense of genuine excitement and a readiness for action. There's a subtle, almost playful bounce to her voice, hinting at her occasional absent-mindedness or spirited recklessness, making her sound incredibly dynamic and approachable.",
+      "name_jp": "コレット・“スカイホッパー”・ギアウィンド",
+      "name_romanji": "Colette \"Skyhopper\" Gearwind",
+      "profile": {
+        "nickname_jp": "ココ、空飛ぶコレット",
+        "nickname_en": "Coco, Colette the Skyhopper",
+        "age": 19,
+        "birthday": "9月20日 (空の日)",
+        "blood_type": "B型",
+        "height_cm": 160,
+        "likes": [
+          "空を飛ぶこと、新しい発明品のテスト飛行",
+          "機械いじり、スチームパンクガジェット",
+          "冒険、未知の土地への配達",
+          "アップルパイ、ジンジャーエール",
+          "賑やかな街、人々の笑顔"
+        ],
+        "dislikes_weaknesses": [
+          "悪天候での飛行、機械の故障",
+          "退屈な事務作業、じっとしていること",
+          "細かいルールや規則",
+          "高いところが少し苦手（でも飛行は別腹！）",
+          "方向音痴（よく地図を見間違える）"
+        ],
+        "personality": [
+          "明るく元気で、冒険心旺盛なスチームパンク世界の配達人。",
+          "好奇心旺盛で、新しいものや面白いことが大好き。",
+          "少しおっちょこちょいだが、持ち前の行動力と機転で困難を乗り越える。",
+          "機械いじりが得意で、自分の飛行機械のメンテナンスもこなす。",
+          "人懐っこく、誰とでもすぐに友達になれる。"
+        ],
+        "skills_talents": [
+          "小型飛行機械（自作のオーニソプターやジェットパックなど）の操縦",
+          "機械工学、スチームパンクガジェットの発明と修理",
+          "パルクール、アクロバティックな動き",
+          "荷物の梱包と安全な輸送",
+          "どんな状況でも前向きでいられるポジティブさ"
+        ],
+        "catchphrases_quotes": [
+          "お届け物でーす！空飛ぶコレットにお任せあれ！",
+          "ちょっとくらいのスリルがなくっちゃ、面白くないでしょ？",
+          "この空は、どこまでも続いてるんだ！"
+        ],
+        "background_setting": [
+          "蒸気と歯車の街「ギアウィンドシティ」で人気のスカイ・クーリエ（空の配達人）。",
+          "発明家の祖父の影響で、幼い頃から機械と空に憧れていた。",
+          "自作の飛行機械を駆り、どんな僻地へも荷物を届ける。",
+          "時に危険な空賊や天候不順に巻き込まれることもあるが、持ち前の勇気と知恵で切り抜ける。"
+        ]
+      },
+      "image_description_hint": "赤銅色のショートヘア、緑色の瞳、ゴーグル、革のジャケット、配達物、スチームパンク風の都市、飛行機械"
+    },
+    {
+      "image": "0016_minorin",
+      "voice": "A female voice that is warm, wholesome, and possesses a cheerful, medium-high pitch. Her delivery is bright and earnest, often with a gentle, unhurried cadence that suggests a life in harmony with nature and a positive outlook. The tone is comforting and inviting, like sun-warmed earth or freshly picked produce, consistently conveying a sense of genuine kindness and a down-to-earth spirit. There's a subtle, resilient strength beneath her mild demeanor, like a sturdy sapling, making her sound both gentle and reliably grounded.",
+      "name_jp": "豊穣 みのり（ほうじょう みのり）",
+      "name_romanji": "Houjou Minori",
+      "profile": {
+        "nickname_jp": "みのりん、大地の恵みちゃん",
+        "nickname_en": "Minorin, Earth's Blessing",
+        "age": 18,
+        "birthday": "8月8日 (米の日、または葉っぱの日)",
+        "blood_type": "O型",
+        "height_cm": 158,
+        "likes": [
+          "作物の世話、収穫の喜び",
+          "太陽の光、土の匂い、動物たち",
+          "手作り料理（採れたて野菜たっぷり）",
+          "村のお祭り、みんなで食べるご飯",
+          "おばあちゃんの知恵袋"
+        ],
+        "dislikes_weaknesses": [
+          "害虫、日照り続きや長雨",
+          "作物を粗末にすること",
+          "都会の騒がしさ、排気ガス",
+          "早起き（だけど日の出と共に起きる）",
+          "機械の操作（ちょっと苦手）"
+        ],
+        "personality": [
+          "明るく素朴で、太陽のように暖かく元気な農家の娘。",
+          "自然を愛し、大地の実りに感謝の気持ちを忘れない。",
+          "働き者で、どんなことにも一生懸命取り組む。",
+          "少しおっとりしているが、芯は強くしっかり者。",
+          "誰にでも優しく、困っている人を見ると放っておけない。"
+        ],
+        "skills_talents": [
+          "農業全般（野菜、果物、米作りなど）",
+          "動物の世話（牛、鶏、犬など）",
+          "天候予測（長年の勘）",
+          "保存食作り（漬物、ジャムなど）",
+          "手先が器用（わら細工など）"
+        ],
+        "catchphrases_quotes": [
+          "今日も一日、がんばるぞー！",
+          "見て見て！こんなに立派な野菜が採れたよ！",
+          "大地の恵みに感謝だね！"
+        ],
+        "background_setting": [
+          "のどかな田園風景が広がる村で、代々続く農家の長女。",
+          "幼い頃から畑仕事を手伝い、自然と共に育ってきた。",
+          "彼女が育てた野菜は特に美味しいと評判で、村の人気者。",
+          "将来は、自分の農園でたくさんの人に美味しい作物を届けたいと思っている。"
+        ]
+      },
+      "image_description_hint": "茶髪おさげ、オレンジ色の瞳、麦わら帽子、チェックシャツにオーバーオール、野菜の入ったカゴ、麦畑、農家"
+    },
+    {
+      "image": "0017_kochou",
+      "voice": "A female voice that is clear and deeply resonant, with a refined, calm low pitch. Her delivery is slow and exceptionally gentle, flowing with an unhurried cadence. The tone is profoundly melancholic and wistful, hinting at a timeless, hidden depth.",
+      "name_jp": "胡蝶（こちょう）",
+      "name_romanji": "Kochou",
+      "profile": {
+        "nickname_jp": "胡蝶太夫（こちょうたゆう）、幻の蝶",
+        "nickname_en": "Lady Kochou, Phantom Butterfly",
+        "age": "24歳（とされている）",
+        "birthday": "2月29日（閏年）",
+        "blood_type": "AB型",
+        "height_cm": 168,
+        "likes": [
+          "月見、雅な宴、和歌や俳句",
+          "上質な絹織物、香木、季節の花々",
+          "三味線や琴の音色、舞",
+          "知的な会話、謎めいた人物",
+          "甘いお酒、繊細な京料理"
+        ],
+        "dislikes_weaknesses": [
+          "無粋な振る舞い、下品な言葉",
+          "詮索、束縛",
+          "暑苦しい場所、粗末な扱い",
+          "自分の本心を見透かされること",
+          "孤独（華やかさの裏で）"
+        ],
+        "personality": [
+          "妖艶かつ気品高く、知性と教養に溢れた花魁（太夫）。",
+          "ミステリアスな雰囲気を纏い、簡単には本心を見せない。",
+          "美しい容姿だけでなく、和歌や舞、楽器演奏など多才な芸事で客を魅了する。",
+          "時に人を試すような言動をすることもあるが、それは相手を見極めるため。",
+          "華やかな世界の裏で、人知れぬ想いや哀しみを抱えているという噂も。"
+        ],
+        "skills_talents": [
+          "舞踊（特に古典的なもの）、歌唱",
+          "三味線、琴、笛などの楽器演奏",
+          "和歌、書道、茶道、華道、香道などの諸芸百般",
+          "巧みな話術、人心掌握術",
+          "相手の隠れた本質を見抜く洞察力"
+        ],
+        "catchphrases_quotes": [
+          "今宵の月は、わっちの心のように霞んでおりますなぁ…。",
+          "一時の夢でも、お慰みいただけましたでしょうか。",
+          "まことの心は、言の葉の裏にこそ隠れておりまする。"
+        ],
+        "background_setting": [
+          "都で最も格式高いと言われる遊郭「幻月楼」の呼び声高い太夫。",
+          "その美貌と才芸は他の追随を許さず、彼女に会うためには莫大な財と運が必要と言われる。",
+          "出自は謎に包まれており、様々な憶測が飛び交っている。",
+          "彼女の舞は「胡蝶の舞」と呼ばれ、見る者を夢幻の世界へ誘うという。"
+        ]
+      },
+      "image_description_hint": "黒髪の日本髪、赤い瞳、豪華な簪、黒地に金の模様が入った着物、扇子、煙管、和室、行灯"
+    },
+    {
+      "image": "0018_k",
+      "voice": "A female voice that is clear, calm, and precisely articulated, with a distinctly low pitch. Her delivery is nearly monotone and devoid of emotional inflection, conveying an unnervingly detached and clinical quality. The tone carries a subtle cynical edge and an unwavering, quiet authority, with a faint, almost synthetic clarity, making her sound cold and commanding.",
+      "name_jp": "コードネーム：ゼロ・ケルヴィン (本名不明)",
+      "name_romanji": "Codename: Zero Kelvin (Real name unknown)",
+      "profile": {
+        "nickname_jp": "ドクターK、ゼロ",
+        "nickname_en": "Dr. K, Zero",
+        "age": "20代前半（外見）",
+        "birthday": "不明",
+        "blood_type": "不明（人工血液？）",
+        "height_cm": 163,
+        "likes": [
+          "最新のサイバネティクス技術、非合法な医療処置",
+          "夜のネオン街、情報収集",
+          "高濃度のカフェイン飲料、インスタント食品",
+          "難解な医学書や技術書を読むこと",
+          "自分の「作品」が完璧に機能すること"
+        ],
+        "dislikes_weaknesses": [
+          "旧式の医療技術、非効率な処置",
+          "権力機関（特に医療監査局）",
+          "感情的な患者、自分の領域を侵されること",
+          "太陽光（あまり得意ではない）",
+          "「失敗作」と見なした自身の処置"
+        ],
+        "personality": [
+          "クールでシニカル、常識にとらわれないサイバーパンク世界の闇医者。",
+          "腕は超一流だが、倫理観は欠如しており、法外な報酬でどんな危険な処置も請け負う。",
+          "口数は少ないが、皮肉めいた発言が多い。",
+          "人間よりも機械やデータに親近感を覚える。",
+          "自分の技術には絶対的な自信を持っているが、他人に心を開くことは滅多にない。"
+        ],
+        "skills_talents": [
+          "サイバネティクス手術、義体化処置",
+          "神経接続、記憶操作（限定的）",
+          "違法な薬物やナノマシンの調合・投与",
+          "ハッキング（医療データやセキュリティシステム）",
+          "応急処置から高度な外科手術まで（どんな環境でも）"
+        ],
+        "catchphrases_quotes": [
+          "…また面倒な患者か。",
+          "命が惜しければ、黙って私の言う通りにしろ。",
+          "この程度の改造で、お前は生まれ変われる。"
+        ],
+        "background_setting": [
+          "巨大都市の裏路地に隠れ家的なクリニックを構える、凄腕の闇医者。",
+          "その正体は謎に包まれており、本名や過去を知る者はいない。",
+          "非合法なサイバネティクス改造や、表社会では扱えない重傷患者の治療を専門とする。",
+          "「ゼロ・ケルヴィン」のコードネームは、彼女の氷のように冷徹な手術と、感情を見せない態度から来ているという。"
+        ]
+      },
+      "image_description_hint": "銀髪ショート（やや青みがかった）、青い瞳、片目にサイバーな眼帯、白いラボコート、黒いインナー、銃のような医療器具、サイバーパンクな機械に囲まれた部屋、ネオン"
+    },
+    {
+      "image": "0019_astra",
+      "voice": "A female voice that is clear, serene, and possesses a refined, low pitch, imbued with a timeless, ethereal quality. Her delivery is slow, measured, and deliberate, each word articulated with a profound yet gentle clarity. The tone carries a mysterious, resonant depth, like the quiet vastness of the cosmos, hinting at ancient wisdom and a subtle, melancholic solitude.",
+      "name_jp": "アストラ・セレネフィカ",
+      "name_romanji": "Astra Selenephica",
+      "profile": {
+        "nickname_jp": "星詠みの魔女、アストラ様",
+        "nickname_en": "Star-Reading Witch, Lady Astra",
+        "age": "見た目は20代半ば（実年齢は数百年以上？）",
+        "birthday": "流星群が最も多く観測される夜",
+        "blood_type": "不明（魔力由来？）",
+        "height_cm": 167,
+        "likes": [
+          "星図の作成、天体観測、占星術",
+          "古代の魔法書、水晶玉、アストロラーベ",
+          "静かな夜、ハーブティー（星屑入りと噂される）",
+          "月の満ち欠け、宇宙の神秘",
+          "稀に訪れる、純粋な好奇心を持った訪問者"
+        ],
+        "dislikes_weaknesses": [
+          "星の見えない曇り空、光害",
+          "占いを軽んじる者、運命に抗おうとしない者",
+          "騒がしい場所、俗世の煩わしさ",
+          "自分の予言が悪い方向へ的中すること",
+          "甘いお菓子（集中力が散漫になるらしい）"
+        ],
+        "personality": [
+          "物静かで知的、神秘的な雰囲気を纏う占星術師。",
+          "星々の運行から未来を読み解き、人々に助言を与える。",
+          "達観しており、感情をあまり表に出さないが、時折寂しげな表情を見せることも。",
+          "宇宙の真理や運命の法則を探求することに生涯を捧げている。",
+          "言葉少なだが、その一言一言には深い意味が込められている。"
+        ],
+        "skills_talents": [
+          "高度な占星術、未来予知、運命解読",
+          "天体魔法（星の力を借りた防御魔法や光の魔法など）",
+          "古代語の読解、魔法薬の調合（星の材料を用いる）",
+          "空間認識能力（星図を脳内で立体的に把握）",
+          "深い瞑想による精神集中"
+        ],
+        "catchphrases_quotes": [
+          "星々は、全てを知っています…。",
+          "あなたの運命の星は、今、どの位置に？",
+          "抗えぬ流れもあれば、変えられる未来もあるのです。"
+        ],
+        "background_setting": [
+          "人里離れた高山の頂上にある天文台、あるいは異次元に存在する星見の塔で暮らす伝説的な占星術師。",
+          "古の時代から星を読み続けていると言われ、その存在は半ば伝説化している。",
+          "王侯貴族や賢者たちが、重要な決断を下す際に彼女の助言を求めに訪れる。",
+          "彼女の瞳には宇宙の深淵が映っていると噂される。"
+        ]
+      },
+      "image_description_hint": "青いロングヘア、青い瞳、フード付きのローブ、アストロラーベ、望遠鏡、天文台、星空の見える窓"
+    },
+    {
+      "image": "0020_hina",
+      "voice": "A female voice that is bright, energetic, and possesses a high to medium-high pitch. Her delivery is fast-paced and enthusiastic, often with a spirited, almost boisterous quality that radiates youthful vitality. The tone is unmistakably cheerful and optimistic, carrying an underlying current of fierce determination. Her voice embodies an unwavering confidence and a vibrant, sun-drenched warmth, making her sound both invigorating and genuinely heartwarming.",
+      "name_jp": "夏海 陽菜（なつみ ひな）",
+      "name_romanji": "Natsumi Hina",
+      "profile": {
+        "nickname_jp": "ひな、サンシャインエース",
+        "nickname_en": "Hina, Sunshine Ace",
+        "age": 17,
+        "birthday": "7月23日 (テニスの日)",
+        "blood_type": "B型",
+        "height_cm": 162,
+        "likes": [
+          "テニス、試合に勝つこと",
+          "太陽の下での練習、汗をかくこと",
+          "スポーツドリンク、フルーツ（特にオレンジ）",
+          "ライバルとの真剣勝負",
+          "チームメイトとの絆"
+        ],
+        "dislikes_weaknesses": [
+          "雨の日の練習中止、怪我",
+          "負けること、諦めること",
+          "細かい勉強（じっとしていられない）",
+          "不健康な生活、夜更かし",
+          "卑怯なプレイ"
+        ],
+        "personality": [
+          "明るく元気で負けず嫌いな、情熱的なテニスプレイヤー。",
+          "常に全力投球で、どんな困難にも立ち向かう。",
+          "少しお調子者で単純なところもあるが、仲間思いで正義感が強い。",
+          "ライバルを認め、共に高め合いたいと思っている。",
+          "太陽のような笑顔で周囲を照らすムードメーカー。"
+        ],
+        "skills_talents": [
+          "強力なサーブとフォアハンドストローク",
+          "驚異的なスタミナと反射神経",
+          "コートカバーリング能力",
+          "試合の流れを読む戦術眼（経験に基づく）",
+          "どんな状況でも諦めないメンタルの強さ"
+        ],
+        "catchphrases_quotes": [
+          "この一球に全てを懸ける！",
+          "まだまだ、こんなもんじゃないよ！",
+          "絶対勝つ！見ててよね！"
+        ],
+        "background_setting": [
+          "全国レベルの強豪テニス部に所属するエース選手。",
+          "幼い頃に見たプロ選手の試合に憧れてテニスを始めた。",
+          "「サンシャインエース」の異名は、彼女のプレースタイルと太陽のような明るさから。",
+          "目標は全国制覇、そして世界で活躍するプロテニスプレイヤーになること。"
+        ]
+      },
+      "image_description_hint": "オレンジ色のポニーテール、緑色の瞳、白いヘッドバンド、テニスウェア、テニスラケット、テニスコート、試合中"
+    }
+  ]
+}

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>リアルタイム将棋</title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <style>
+    /* 全体でカーソルと文字選択を無効化 */
+    * {
+      user-select: none;
+      /* 文字選択を禁止 */
+      -webkit-user-select: none;
+      /* Webkitブラウザ用 */
+      -moz-user-select: none;
+      /* Firefox用 */
+      -ms-user-select: none;
+      /* IE/Edge用 */
+      cursor: default;
+      /* デフォルトカーソルに設定 */
+    }
+
+    /* ボタンなどはカーソルを指の形にする */
+    button {
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      cursor: pointer;
+      /* ボタンは指カーソルを許可 */
+    }
+
+    /* 入力フィールドでは縦棒カーソルにする */
+    input[type="text"],
+    input[type="number"] {
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      cursor: text;
+      /* 入力フィールドは縦棒カーソルにする */
+    }
+
+    /* スクロールを防ぐためのスタイル */
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      /* スクロールを無効化 */
+      height: 100%;
+      /* 画面全体を占める */
+    }
+
+    /* canvasを全画面表示 */
+    #shogiCanvas {
+      display: block;
+      /* インライン要素の隙間をなくす */
+      width: 100vw;
+      /* ビューポートの幅に合わせる */
+      height: 100vh;
+      /* ビューポートの高さに合わせる */
+      background-color: #222222;
+      /* 背景色（オプション） */
+    }
+
+    .overlay {
+      padding: 10px 10px;
+      background-color: #222222;
+      margin: 10px;
+      border-radius: 10px;
+      gap: 10px;
+      text-align: center;
+    }
+
+    #nameInput {
+      margin: 0px;
+      padding: 10px 15px;
+      flex: 1;
+      pointer-events: auto;
+      z-index: 1;
+      background-color: #f0f0f0;
+      color: #000000;
+      text-align: center;
+      border: none;
+      border-radius: 10px;
+      font-size: 24px;
+      width: 350px;
+      white-space: nowrap;
+    }
+
+    #roomIdInput {
+      margin: 0px;
+      padding: 5px 7px;
+      flex: 1;
+      pointer-events: auto;
+      z-index: 1;
+      background-color: #f0f0f0;
+      color: #000000;
+      text-align: center;
+      border: none;
+      border-radius: 5px;
+
+      font-size: 20px;
+      width: 100px;
+      white-space: nowrap;
+    }
+
+    .blueButton {
+      margin: 0px;
+      padding: 10px 15px;
+      font-size: 28px;
+      background-color: #3241c9;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .roomButton {
+      margin: 0px;
+      padding: 5px 5px;
+      font-size: 20px;
+      background-color: #3241c9;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      width: 290px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .charaButton {
+      margin: 0px;
+      padding: 10px 15px;
+      font-size: 24px;
+      background-color: #3241c9;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .whiteText {
+      margin: 0px 10px;
+      padding: 0px 0px;
+      font-size: 24px;
+      color: white;
+      border-top: -6;
+    }
+
+    /* 音量設定UIのスタイル調整 */
+    #volumeOverlay {
+      padding: 15px 15px;
+      /* パディングを小さく */
+      margin: 5px;
+      /* マージンを小さく */
+      display: flex;
+      /* 要素を横並びにする */
+      flex-direction: column;
+      /* 要素を縦並びにする */
+      align-items: flex-start;
+      /* 左揃え */
+      gap: 5px;
+      /* 要素間の隙間を小さく */
+    }
+
+    #volumeOverlay .whiteText {
+      font-size: 16px;
+      /* フォントサイズを小さく */
+      margin: 0px;
+      /* マージンをリセット */
+    }
+
+    #volumeOverlay input[type="range"] {
+      margin: 0px 5px;
+      /* マージンを調整 */
+      vertical-align: middle;
+      /* 垂直方向中央揃え */
+    }
+
+    /* 設定ボタンのスタイル */
+    #settingsButton {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 10px 15px;
+      font-size: 20px;
+      background-color: #3241c9;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 10;
+      /* 他の要素より前面に表示 */
+    }
+
+    /* コピー成功メッセージのスタイル */
+    #copySuccessMessage {
+      position: absolute;
+      top: 120px;
+      /* roomIdOverlayの下に配置 */
+      left: 50%;
+      transform: translate(0%, 0%);
+      background-color: #187a1c;
+      /* 緑色の背景 */
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      z-index: 10;
+      display: none;
+      /* 初期状態では非表示 */
+      opacity: 0;
+      /* 初期状態では透明 */
+      transition: opacity 0.5s ease-in-out;
+      /* フェードイン・アウトのアニメーション */
+    }
+
+    /* Discordボタンの基本スタイル */
+    .discord-button {
+      display: inline-block;
+      position: absolute;
+      top: 20px;
+      right: 160px;
+      /* 他の要素と横並びできるようにしつつ、大きさも指定可能にする */
+      padding: 12px 24px;
+      /* ボタンの内側の余白 (上下12px, 左右24px) */
+      font-size: 16px;
+      /* 文字の大きさ */
+      font-weight: bold;
+      /* 文字を太字に */
+      text-align: center;
+      /* 文字を中央揃えに */
+      text-decoration: none;
+      /* テキストの下線を消す */
+      color: #FFFFFF;
+      /* 文字の色 (白) */
+      background-color: #5865F2;
+      /* 背景色 (Discordのブランドカラー) */
+      border: none;
+      /* 枠線をなくす */
+      border-radius: 8px;
+      /* ボタンの角を丸くする */
+      cursor: pointer;
+      /* マウスカーソルを指の形にする */
+      transition: background-color 0.3s, transform 0.2s;
+      /* 色や形が滑らかに変わるアニメーション */
+    }
+
+    /* マウスを乗せた時 (ホバー) のスタイル */
+    .discord-button:hover {
+      background-color: #4752C4;
+      /* 少し暗い色に変化させる */
+    }
+
+    /* クリックした時 (アクティブ) のスタイル */
+    .discord-button:active {
+      transform: translateY(1px);
+      /* 少し下に沈むような動き */
+    }
+
+    /* 部屋設定表示エリアのスタイル */
+    #roomSettingsDisplay {
+      position: absolute;
+      top: 10px;
+      /* tebanOverlayの下に配置 */
+      left: 50%;
+      transform: translate(-500px, 0px);
+      display: none;
+      /* 初期状態では表示 */
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+      padding: 10px;
+      background-color: #222244;
+      border-radius: 10px;
+      color: white;
+    }
+
+    #roomSettingsDisplay p {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    #roomSettingsDisplay button {
+      margin-top: 7px;
+      padding: 7px 10px;
+      font-size: 18px;
+      background-color: #207985;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      align-self: center;
+      /* 中央揃え */
+    }
+
+
+    /* 部屋設定オーバーレイのスタイル */
+    #roomSettingsOverlay {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, 0%);
+      display: none;
+      /* 初期状態では非表示 */
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+      padding: 10px;
+      background-color: #222244;
+      border-radius: 10px;
+      color: white;
+    }
+
+    #roomSettingsOverlay label {
+      font-size: 20px;
+    }
+
+    #roomSettingsOverlay input[type="number"] {
+      margin-left: 10px;
+      padding: 5px;
+      border-radius: 5px;
+      border: none;
+      width: 80px;
+    }
+
+    #roomSettingsOverlay button {
+      margin-top: 10px;
+      padding: 7px 10px;
+      font-size: 20px;
+      background-color: #207985;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      align-self: center;
+      /* 中央揃え */
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ロード中テキスト表示用の要素 -->
+  <div id="loadingOverlay" class="overlay"
+    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center;">
+    <p id="loadingText" style="color: white; font-size: 48px;">Loading...</p>
+  </div>
+
+  <canvas id="shogiCanvas" tabindex="0"></canvas>
+
+  <input type="text" id="nameInput" autocomplete="off" placeholder="名前" maxlength="12"
+    style="display: none; font-size: 24px; position: absolute; bottom: 5%; left: 50%; width:350px; height:30px; transform: translate(-50%, 0%);">
+  <input type="text" id="roomIdInput" autocomplete="off" placeholder="部屋ID" maxlength="6"
+    style="display: none; font-size: 20px; padding: 6px; position: absolute; bottom: 18%; left: 72%; width:100px; height:20px; transform: translate(0%, 0%);">
+  <button id="charaSubmitButton" class="blueButton"
+    style="display: none; position: absolute; bottom: 21%; left: 70%;  font-size: 40px; padding:10px 15px; border-radius: 10px; transform: translate(-50%, -50%);">決定</button>
+  </div>
+
+
+  <div id="roomui">
+    <div id="roomIdOverlay" class="overlay"
+      style="position: absolute; top:50px; left:40%; display: none; transform: translate(0%, 0%);">
+      <button id="displayRoomIdButton" class="roomButton"
+        style="padding: 0px; height:60px; margin: 0px;background-color: #207985; font-size:32px">部屋IDを表示</button>
+      <p id="roomIdStr" style="padding: 0px; margin: 0px; color: #ffffff; font-size:48px"></p>
+      <button id="copyIdButton" class="roomButton"
+        style="padding: 0px; width: 150px; height:60px; margin: 0px;background-color: #37792e; font-size:36px">コピー</button>
+    </div>
+
+    <!-- コピー成功メッセージ -->
+    <div id="copySuccessMessage">部屋IDをコピーしました！</div>
+    <div id="cancelOverlay" class="overlay"
+      style="position: absolute; top:150px; left:50%; display: none; transform: translate(-50%, 0%);">
+      <button id="cancelButton" class="roomButton" style="background-color: #37792e;">キャンセル</button>
+    </div>
+
+    <div id="playingText" class="overlay"
+      style="position: absolute; top:120px; left:50%; background-color: #00000000; display: none; transform: translate(-50%, 0%);">
+      <p style="color: #d43737; font-size: 36px;">プレイ中</p>
+    </div>
+
+    <div id="readyOverlay" class="overlay"
+      style="position: absolute; top:150px; left:50%; display: none; transform: translate(-50%, 0%);">
+      <button id="readyButton" class="roomButton" style="background-color: #c06109;">準備完了</button>
+    </div>
+
+    <div id="startOverlay" class="overlay"
+      style="position: absolute; top:150px; left:50%; display: none; transform: translate(60%, 0%);">
+      <button id="startRoomGameButton" class="roomButton" style="background-color: #d842bf;">ゲーム開始</button>
+    </div>
+
+
+
+    <div id="tebanOverlay" class="overlay"
+      style="display: none; position: absolute; top:200px; left:50%;  background-color: #00000000;  transform: translate(-50%, 0%);">
+
+      <div id="senteOverlay" class="overlay" style="display: block; width: 300px;">
+        <button id="moveToSenteButton" class="roomButton">先手に移動</button>
+      </div>
+      <div id="spectatorsOverlay" class="overlay" style="display: block; width: 300px;">
+        <button id="moveToSpectatorsButton" class="roomButton">観戦</button>
+      </div>
+      <div id="goteOverlay" class="overlay" style="display: block; width: 300px;">
+        <button id="moveToGoteButton" class="roomButton">後手に移動</button>
+      </div>
+    </div>
+
+    <!-- 部屋設定表示エリアを追加 -->
+    <div id="roomSettingsDisplay" class="overlay">
+      <p id="maxPlayersDisplay"></p>
+      <p id="senteMoveTimeDisplay"></p>
+      <p id="goteMoveTimeDisplay"></p>
+      <!-- オーナーの場合のみ表示されるボタン -->
+      <button id="openRoomSettingsButton" style="display: none;">ルーム設定変更</button>
+    </div>
+
+    <!-- 部屋設定オーバーレイ (変更なし) -->
+    <div id="roomSettingsOverlay" class="overlay">
+      <label for="maxPlayersInput">最大プレイヤー数:</label>
+      <input type="number" id="maxPlayersInput" min="2" max="12" value="2">
+
+      <label for="senteMoveTimeInput">先手クールダウン (秒):</label>
+      <input type="number" id="senteMoveTimeInput" min="0" max="30" value="5">
+
+      <label for="goteMoveTimeInput">後手クールダウン (秒):</label>
+      <input type="number" id="goteMoveTimeInput" min="0" max="30" value="5">
+
+      <button id="saveRoomSettingsButton">適用</button>
+    </div>
+
+    <div id="leaveRoomOverlay" class="overlay"
+      style="position: absolute; bottom:20px; left:50%; display: none; transform: translate(-50%, 0%);">
+      <button id="leaveRoomButton" class="roomButton" style="width:120px;">退室</button>
+    </div>
+  </div>
+
+  <div id="charaSelectOverlay" class="overlay"
+    style="display: none; position: absolute; bottom: 120px;  left: 20px; transform: translate(0%, 0%);">
+    <button id="charaSelectButton" class="charaButton">キャラ変更</button>
+  </div>
+  <div id="resultOverlay" class="overlay"
+    style="display: none; position: absolute; top: 70%; left: 50%; transform: translate(-50%, -50%);">
+    <p id="winCon" class="whiteText">試合終了</p>
+    <p id="changeRating" class="whiteText">レート変動 なし</p>
+    <button id="toTitleButton" class="blueButton">タイトルに戻る</button>
+  </div>
+  <div id="roomResultOverlay" class="overlay"
+    style="display: none; position: absolute; top: 70%; left: 50%; transform: translate(-50%, -50%);">
+    <p id="roomWinCon" class="whiteText">試合終了</p>
+    <button id="toRoomButton" class="blueButton">戻る</button>
+  </div>
+
+  <!-- 設定ボタンを追加 -->
+  <button id="settingsButton">音量設定</button>
+
+  <div id="volumeOverlay" class="overlay"
+    style="display: none;  margin:10px; position: absolute; top: 60px; right: 10px; text-align: left;">
+    <label for="bgmVolumeSlider" class="whiteText">BGM:</label>
+    <input type="range" id="bgmVolumeSlider" min="0" max="100" value="100">
+    <label for="soundVolumeSlider" class="whiteText">SE:</label>
+    <input type="range" id="soundVolumeSlider" min="0" max="100" value="100">
+    <label for="voiceVolumeSlider" class="whiteText">Voice:</label>
+    <input type="range" id="voiceVolumeSlider" min="0" max="100" value="100">
+  </div>
+  <a id="discordButton" href="https://discord.gg/6VYVWnM7Qu" class="discord-button" target="_blank"
+    rel="noopener noreferrer">
+    Discord
+  </a>
+
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="./main.js" type="module"></script>
+</body>
+
+</html>

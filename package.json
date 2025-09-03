@@ -1,0 +1,35 @@
+{
+  "name": "ssdojo",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "startgame": "node game_server/game_server.js",
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
+    "devgame": "nodemon game_server/game_server.js",
+    "test": "jest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "build": "webpack",
+    "clean": "rimraf dist",
+    "precommit": "npm run lint && npm test",
+    "docker:build": "docker build -t your-app .",
+    "docker:run": "docker run -p 3000:3000 your-app",
+    "seed": "node scripts/seed.js",
+    "migrate": "node scripts/migrate.js",
+    "coverage": "jest --coverage",
+    "debug": "node --inspect index.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.16.3",
+    "socket.io": "^4.8.1",
+    "sqlite3": "^5.1.7",
+    "uuid-random": "^1.3.2"
+  }
+}

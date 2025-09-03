@@ -1,0 +1,113 @@
+{
+    "language": "中文",
+    "title": "即时将棋",
+    "volume-setting": "音量设置",
+    "bgm-volume": "背景音乐",
+    "se-volume": "音效",
+    "voice-volume": "角色语音",
+    "rule": "规则",
+    "rule-text": "・吃掉对方的王\n\n・让己方的王到达对方王的起始位置",
+    "piece-list": "棋子列表",
+    "close": "关闭",
+    "manual": "操作说明",
+    "manual-text": "鼠标拖拽 - 移动棋子\n右键拖拽 - 不升级\n\n<快捷键>\n空格 - 步兵\nQ - 香车　W - 桂马　E - 角行\nA - 银将　 S - 金将　D - 飞车",
+    "win-condition": "胜利条件",
+    "online-match": "在线对战",
+    "matching": "匹配中",
+    "cancel": "取消",
+    "name": "名字",
+    "resign": "投降",
+    "anonymous": "不留名",
+    "change-character": "更换角色",
+    "make-room": "创建房间",
+    "join-room": "加入房间",
+    "join-failed": "加入房间失败",
+    "room-id": "房间ID",
+    "cpu-match": "对战电脑",
+    "level": "等级",
+    "game-count": "对局数",
+    "rating": "积分",
+    "unrated": "未定级",
+    "rating-change": "积分变化",
+    "ranking": "排行榜",
+    "select-character": "选择角色",
+    "submit": "确定",
+    "start-game": "开始游戏",
+    "move-first": "移至先手",
+    "move-second": "移至后手",
+    "spectate": "观战",
+    "display-room-id": "显示房间ID",
+    "display-room-id-off": "隐藏房间ID",
+    "ready": "准备就绪",
+    "copy": "复制",
+    "copy-success": "已复制房间ID",
+    "failed-copy": "复制房间ID失败",
+    "change-setting": "更改设置",
+    "max-player": "最大玩家数: ",
+    "cooldown-first": "先手冷却时间 (秒): ",
+    "cooldown-second": "后手冷却时间 (秒): ",
+    "check": "启用",
+    "uncheck": "禁用",
+    "leave-room": "离开房间",
+    "apply": "确定",
+    "win": "胜利",
+    "lose": "失败",
+    "game-end": "对局结束",
+    "resign-win": "对手投子认负",
+    "resign-lose": "您已投子认负",
+    "try-rule": "王(玉)已到达目标位置",
+    "back": "返回",
+    "characters": {
+        "rei": {
+            "name": "绯月零",
+            "profile": "以夜晚街道为据点的、被谜团包裹的自由职业者\"解决屋\"\n或特工。无论多么困难的委托，无论是否触犯法律，\n据说都能换取高额报酬完美执行。",
+            "quotes": [
+                "工作时间到了。",
+                "已确认委托内容。",
+                "你知道得太多了。",
+                "犹豫是通往失败的第一步。",
+                "我不喜欢浪费时间。"
+            ],
+            "start_quotes": [
+                "计算将死的最短路径。"
+            ],
+            "win_quotes": [
+                "理所当然的结果。计算没有错误。"
+            ]
+        },
+        "aoi": {
+            "name": "水濑葵",
+            "profile": "就读于市内高中的、非常普通不起眼的女高中生。\n但到了晚上，她的身影会变身为传说中的天才游戏玩家兼\n白帽黑客\"赛博·塞壬\"。",
+            "quotes": [
+                "好了，开始了。",
+                "小心，那个位置会被集火的。",
+                "已分析完敌人的构成。",
+                "好的，辛苦了～",
+                "登录完成。"
+            ],
+            "start_quotes": [
+                "热身完成。随时可以开始。"
+            ],
+            "win_quotes": [
+                "你的所有动作我都看在眼里。"
+            ]
+        },
+        "akira": {
+            "name": "日轮晶",
+            "profile": "在街角经营会员制隐藏爵士酒吧\"冬至\"的年轻女性店主。\n她另一面的身份是，地下社会各种信息汇集的中立\n情报贩子\"神谕者\"。",
+            "quotes": [
+                "交易成立了吗？",
+                "在我的店里请保持安静。",
+                "无论谁都是某种棋子。",
+                "很有趣的故事。再多说一点吧。",
+                "信息是有价值的。"
+            ],
+            "start_quotes": [
+                "把你所有的牌都给我看看。"
+            ],
+            "win_quotes": [
+                "我收到了应有的报酬。多谢款待。"
+            ]
+        }
+    }
+}

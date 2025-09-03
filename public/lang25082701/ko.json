@@ -1,0 +1,113 @@
+{
+    "language": "한국어",
+    "title": "실시간 장기",
+    "volume-setting": "음량 설정",
+    "bgm-volume": "배경 음악",
+    "se-volume": "효과음",
+    "voice-volume": "캐릭터 목소리",
+    "rule": "규칙",
+    "rule-text": "・상대방의 왕을 잡는다\n\n・자신의 왕이 상대방의 시작 위치에 도달한다",
+    "piece-list": "말 목록",
+    "close": "닫기",
+    "manual": "조작 방법",
+    "manual-text": "마우스 드래그 - 말 이동\n오른쪽 드래그 - 승급하지 않음\n\n<단축키>\nSpace - 보병\nQ - 향차　W - 계마　E - 각행\nA - 은장　 S - 금장　D - 비차",
+    "win-condition": "승리 조건",
+    "online-match": "온라인 대전",
+    "matching": "매칭 중",
+    "cancel": "취소",
+    "name": "이름",
+    "resign": "항복",
+    "anonymous": "익명",
+    "change-character": "캐릭터 변경",
+    "make-room": "방 만들기",
+    "join-room": "방 참가",
+    "join-failed": "방 참가에 실패했습니다",
+    "room-id": "방 ID",
+    "cpu-match": "CPU 대전",
+    "level": "레벨",
+    "game-count": "대전 수",
+    "rating": "평점",
+    "unrated": "배치 중",
+    "rating-change": "평점 변동",
+    "ranking": "랭킹",
+    "select-character": "캐릭터 선택",
+    "submit": "확인",
+    "start-game": "게임 시작",
+    "move-first": "선수로 이동",
+    "move-second": "후수로 이동",
+    "spectate": "관전",
+    "display-room-id": "방 ID 표시",
+    "display-room-id-off": "방 ID 숨기기",
+    "ready": "준비 완료",
+    "copy": "복사",
+    "copy-success": "방 ID를 복사했습니다",
+    "failed-copy": "방 ID 복사에 실패했습니다",
+    "change-setting": "설정 변경",
+    "max-player": "최대 플레이어 수: ",
+    "cooldown-first": "선수 쿨다운 (초): ",
+    "cooldown-second": "후수 쿨다운 (초): ",
+    "check": "켜기",
+    "uncheck": "끄기",
+    "leave-room": "방 나가기",
+    "apply": "적용",
+    "win": "승리",
+    "lose": "패배",
+    "game-end": "게임 종료",
+    "resign-win": "상대방이 항복했습니다",
+    "resign-lose": "항복했습니다",
+    "try-rule": "왕이 목표 지점에 도달했습니다",
+    "back": "뒤로",
+    "characters": {
+        "rei": {
+            "name": "히즈키 레이",
+            "profile": "밤의 거리를 기반으로 하는 수수께끼에 싸인 프리랜서 '문제 해결사'\n또는 요원. 어떤 어려운 의뢰든 법을 위반하는지 여부와 상관없이,\n고액의 보상과 교환하여 완벽하게 수행한다고 알려져 있다.",
+            "quotes": [
+                "일할 시간이다.",
+                "의뢰 내용을 확인했다.",
+                "너는 너무 많이 안다.",
+                "망설임은 패배로 가는 첫걸음이다.",
+                "시간 낭비를 싫어한다."
+            ],
+            "start_quotes": [
+                "체크메이트까지의 최단 경로를 계산한다."
+            ],
+            "win_quotes": [
+                "당연한 결과입니다. 계산에 오류는 없습니다."
+            ]
+        },
+        "aoi": {
+            "name": "미나세 아오이",
+            "profile": "도내 고등학교에 다니는 매우 평범하고 눈에 띄지 않는 여고생.\n하지만 밤이 되면 그 모습은 전설적인 천재 게이먼 겸 화이트 해커\n'사이버 세레네'로 변신한다.",
+            "quotes": [
+                "좋다, 시작하자.",
+                "조심해, 거기 적한테 각 나왔어.",
+                "적의 구성을 분석했다.",
+                "응, 수고했어~",
+                "로그인 완료."
+            ],
+            "start_quotes": [
+                "워밍업이 완료되었습니다. 언제든지 시작하세요."
+            ],
+            "win_quotes": [
+                "상대의 모든 움직임을 보고 있었어요."
+            ]
+        },
+        "akira": {
+            "name": "히노와 아키라",
+            "profile": "거리 구석에서 회원제 숨겨진 재즈 바 '솔스티스'를 운영하는\n젊은 여성 사장. 그 뒤의 얼굴은 지하 사회의 모든 정보가 모이는\n중립적 정보상 '오라클'이다.",
+            "quotes": [
+                "거래, 성립된 걸까요?",
+                "내 가게에서는 조용히 해줘.",
+                "누구나 무언가의 말이다.",
+                "재미있는 이야기야. 좀 더 들려줘.",
+                "정보에는 가치가 있다."
+            ],
+            "start_quotes": [
+                "가진 카드를 전부 보여주세요."
+            ],
+            "win_quotes": [
+                "당연한 대가는 받았습니다. 잘 먹었습니다."
+            ]
+        }
+    }
+}
