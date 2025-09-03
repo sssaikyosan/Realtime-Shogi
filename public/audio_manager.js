@@ -14,8 +14,8 @@ export class AudioManager {
 
     constructor() {
         this.loadVolumeSettings(); // アプリケーション起動時に設定を読み込む
-        this.addBGM('title', 0.35);
-        this.addBGM('battle', 0.25);
+        this.addBGM('title', 0.25);
+        this.addBGM('battle', 0.18);
     }
 
     addBGM(filename, originalVolume) {
@@ -135,7 +135,7 @@ export class AudioManager {
                 const settings = JSON.parse(settingsString);
                 // 読み込んだ設定が有効な数値か確認し、一時変数に格納。無効な場合はデフォルト値を使用。
                 const loadedBgmVolume = (typeof settings.bgmVolume === 'number' && isFinite(settings.bgmVolume)) ? settings.bgmVolume : 0.2;
-                const loadedSoundVolume = (typeof settings.soundVolume === 'number' && isFinite(settings.soundVolume)) ? settings.soundVolume : 0.2;
+                const loadedSoundVolume = (typeof settings.soundVolume === 'number' && isFinite(settings.soundVolume)) ? settings.soundVolume : 0.3;
                 const loadedVoiceVolume = (typeof settings.voiceVolume === 'number' && isFinite(settings.voiceVolume)) ? settings.voiceVolume : 0.2;
 
                 // 一時変数に格納した値を使って音量プロパティを設定
