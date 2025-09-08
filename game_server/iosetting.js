@@ -10,9 +10,11 @@ export function ioSetup() {
             const playerInfo = await serverState.getPlayerInfo(data.player_id);
             const roomId = serverState.canJoinRoom[data.player_id].roomId;
             const teban = serverState.canJoinRoom[data.player_id].teban;
+            if (!serverState.rooms[roomId]) {
+                socket.emit("roomJoinFailed", { roomId: roomId, text: res });
+                return;
+            }
             const roomType = serverState.rooms[roomId].roomType;
-
-
 
             if (roomType === 'rating') {
                 if (serverState.addPlayer(socket, playerInfo)) {
