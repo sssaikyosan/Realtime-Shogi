@@ -335,7 +335,7 @@ export function endRoomGame(data) {
     const mywin = data.winPlayer * gameManager.teban;
     setWinCon(roomWinCon, data, mywin);
     setResultText(mywin);
-    characterWinMove(mywin, roomResultOverlay);
+    characterWinMove(mywin, roomResultOverlay, data.winPlayer);
 
     gameManager.teban = 0;
     gameManager.board.finished = true;
@@ -388,7 +388,7 @@ function setResultText(mywin) {
     }
 }
 
-function characterWinMove(mywin, overlay) {
+function characterWinMove(mywin, overlay, win) {
     if (mywin === 1 && arryCharacterUI.image) {
         if (arryCharacterUI.playWinVideo(0)) {
             arryCharacterUI.winVideoElement[0].addEventListener('ended', () => {
@@ -409,9 +409,19 @@ function characterWinMove(mywin, overlay) {
                 overlay.style.display = "block";
             }, 1000);
         }
-    } else if (mywin === 0 && arryCharacterUI.image) {
+    } else if (mywin === 0 && win === 1 && arryCharacterUI.image) {
         if (arryCharacterUI.playWinVideo(0)) {
             arryCharacterUI.winVideoElement[0].addEventListener('ended', () => {
+                overlay.style.display = "block";
+            });
+        } else {
+            setTimeout(() => {
+                overlay.style.display = "block";
+            }, 1000);
+        }
+    } else if (mywin === 0 && win === -1 && enemyCharacterUI.image) {
+        if (enemyCharacterUI.playWinVideo(0)) {
+            enemyCharacterUI.winVideoElement[0].addEventListener('ended', () => {
                 overlay.style.display = "block";
             });
         } else {
