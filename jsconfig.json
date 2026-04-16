@@ -3,7 +3,6 @@
     "target": "esnext",
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "baseUrl": "public",
     "checkJs": true
   },
   "include": [
