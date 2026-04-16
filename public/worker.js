@@ -139,7 +139,7 @@ function getUnPromotedType(type) {
     const promotedTypes = {
         prom_pawn: 'pawn',
         prom_lance: 'lance',
-        prom_knight: 'prom_knight',
+        prom_knight: 'knight',
         prom_silver: 'silver',
         horse: 'bishop',
         dragon: 'rook'
@@ -347,7 +347,7 @@ class Board {
         this.komadaiPieces[teban === 1 ? 'sente' : 'gote'][type]--;
 
         this.map[nx][ny] = { type: type, teban: teban, lastmovetime: servertime, lastmoveptime: performance.now() };
-        this.kifu.push({ x: -1, y: -1, nx: nx, ny: ny, nari: false, type: type });
+        this.kifu.push({ x: -1, y: -1, nx: nx, ny: ny, nari: false, type: type, teban: teban });
         return { res: true, capture: null };
     }
 
@@ -526,6 +526,8 @@ class Board {
         if (lastMove.capturePiece) {
             this.map[lastMove.nx][lastMove.ny] = { type: lastMove.capturePiece, teban: -lastMove.teban, lastmovetime: lastMove.captime, lastmoveptime: this.starttime }
             this.komadaiPieces[lastMove.teban === 1 ? 'sente' : 'gote'][getUnPromotedType(lastMove.capturePiece)]--;
+        } else {
+            this.map[lastMove.nx][lastMove.ny] = null;
         }
         return true;
     }
@@ -592,11 +594,11 @@ function isDanger(currentBoard, x, y, nx, ny, teban) {
     if (ny - 2 * teban >= 0 && ny - 2 * teban < 9) {
         if (nx > 0) {
             const lpiece = currentBoard.map[nx - 1][ny - 2 * teban];
-            if (lpiece && lpiece.type === 'knight') return true;
+            if (lpiece && lpiece.type === 'knight' && lpiece.teban !== teban) return true;
         }
         if (nx < 8) {
             const rpiece = currentBoard.map[nx + 1][ny - 2 * teban];
-            if (rpiece && rpiece.type === 'knight') return true;
+            if (rpiece && rpiece.type === 'knight' && rpiece.teban !== teban) return true;
         }
     }
     return false;
@@ -636,10 +638,11 @@ function isDangerPos(currentBoard, nx, ny, teban) {
     if (ny - 2 * teban >= 0 && ny - 2 * teban < 9) {
         if (nx > 0) {
             const lpiece = currentBoard.map[nx - 1][ny - 2 * teban];
-            if (lpiece && lpiece.type === 'knight') return true;
-        } else if (nx < 8) {
+            if (lpiece && lpiece.type === 'knight' && lpiece.teban !== teban) return true;
+        }
+        if (nx < 8) {
             const rpiece = currentBoard.map[nx + 1][ny - 2 * teban];
-            if (rpiece && rpiece.type === 'knight') return true;
+            if (rpiece && rpiece.type === 'knight' && rpiece.teban !== teban) return true;
         }
     }
     return false;
@@ -767,6 +770,8 @@ function copyBoard() {
         boardcopy.komadaiPieces['sente'][type] = board.komadaiPieces['sente'][type];
         boardcopy.komadaiPieces['gote'][type] = board.komadaiPieces['gote'][type];
     }
+    // Copy kifu length for game phase detection (shallow copy sufficient)
+    boardcopy.kifu = board.kifu.slice();
     return boardcopy;
 }
 
@@ -1158,12 +1163,12 @@ function evaluateMove(move) {
     return 0;
 }
 
-function evaluateBoard(teban) {
+function evaluateBoard(currentBoard) {
     let score = 0;
     // 盤上の駒の評価
     for (let x = 0; x < BOARD_SIZE; x++) {
         for (let y = 0; y < BOARD_SIZE; y++) {
-            const piece = board.map[x][y];
+            const piece = currentBoard.map[x][y];
             if (piece) {
                 const value = PIECE_PRICES[piece.type];
                 if (piece.teban === 1) { // 先手の駒
@@ -1177,23 +1182,20 @@ function evaluateBoard(teban) {
 
     // 先手の持ち駒
     for (const type of KOMADAI_TYPES) {
-        score += PIECE_PRICES[type] * board.komadaiPieces['sente'][type];
+        score += PIECE_PRICES[type] * currentBoard.komadaiPieces['sente'][type];
     }
-    score += board.komadaiPieces['sente']['king2'] * PIECE_PRICES['king2']
     // 後手の持ち駒
     for (const type of KOMADAI_TYPES) {
-        score -= PIECE_PRICES[type] * board.komadaiPieces['gote'][type];
+        score -= PIECE_PRICES[type] * currentBoard.komadaiPieces['gote'][type];
     }
-    score -= board.komadaiPieces['gote']['king'] * PIECE_PRICES['king']
     return score;
 }
-
 
 function minimax(boardcopy, servertime, depth, isMaximizingPlayer, newMove = null) {
     // 深さが0になったか、ゲームが終了したら盤面を評価
     if (depth >= 3) {
         let val = evaluateBoard(boardcopy);
-        if (newMove && isDangerPos(boardcopy, newMove.nx, newMove.ny, newMove.teban)) {
+        if (newMove && newMove.nx >= 0 && newMove.ny >= 0 && isDangerPos(boardcopy, newMove.nx, newMove.ny, newMove.teban)) {
             const piece = boardcopy.map[newMove.nx][newMove.ny]
             if (piece) {
                 val -= 2 * PIECE_PRICES[piece.type] * newMove.teban;
@@ -1231,8 +1233,8 @@ function minimax(boardcopy, servertime, depth, isMaximizingPlayer, newMove = nul
             const result = boardcopy.justMove({ ...move, servertime: servertime }); // 手を指す
             const evalpoint = minimax(boardcopy, servertime, depth + 1, true, move); // 相手のターンへ
             boardcopy.undoMove(); // 手を戻す
-            minEval = Math.min(minEval, evalpoint.val);
             if (evalpoint.val < minEval) {
+                minEval = evalpoint.val;
                 minMove = { x: move.x, y: move.y, nx: move.nx, ny: move.ny, nari: move.nari, type: move.type, teban: move.teban };
             }
         }
