@@ -134,28 +134,45 @@ const KOMADAI_TYPES = ['pawn', 'lance', 'knight', 'silver', 'gold', 'bishop', 'r
 const BOARD_SIZE = 9;
 const MOVETIME = 7;
 
+// 攻撃判定用テーブル：方向(dx,dy)→その方向に利きがあるか（O(1)参照）
+// idx = (dx+1)*3 + (dy+1)。桂馬の動きは範囲外なので別処理。
+const STEP_ATTACK = {};
+const RAY_ATTACK = {};
+for (const type in PIECE_MOVES) {
+    const step = new Uint8Array(9);
+    const ray = new Uint8Array(9);
+    for (const move of PIECE_MOVES[type]) {
+        if (move.dx < -1 || move.dx > 1 || move.dy < -1 || move.dy > 1) continue;
+        const idx = (move.dx + 1) * 3 + (move.dy + 1);
+        if (move.recursive) ray[idx] = 1;
+        else step[idx] = 1;
+    }
+    STEP_ATTACK[type] = step;
+    RAY_ATTACK[type] = ray;
+}
 
+
+const UNPROMOTE_MAP = {
+    prom_pawn: 'pawn',
+    prom_lance: 'lance',
+    prom_knight: 'knight',
+    prom_silver: 'silver',
+    horse: 'bishop',
+    dragon: 'rook'
+};
+const PROMOTE_MAP = {
+    pawn: 'prom_pawn',
+    lance: 'prom_lance',
+    knight: 'prom_knight',
+    silver: 'prom_silver',
+    bishop: 'horse',
+    rook: 'dragon'
+};
 function getUnPromotedType(type) {
-    const promotedTypes = {
-        prom_pawn: 'pawn',
-        prom_lance: 'lance',
-        prom_knight: 'knight',
-        prom_silver: 'silver',
-        horse: 'bishop',
-        dragon: 'rook'
-    };
-    return promotedTypes[type] || type;
+    return UNPROMOTE_MAP[type] || type;
 }
 function getPromotedType(type) {
-    const promotedTypes = {
-        pawn: 'prom_pawn',
-        lance: 'prom_lance',
-        knight: 'prom_knight',
-        silver: 'prom_silver',
-        bishop: 'horse',
-        rook: 'dragon'
-    };
-    return promotedTypes[type] || type;
+    return PROMOTE_MAP[type] || type;
 }
 
 class Board {
@@ -340,13 +357,14 @@ class Board {
     }
 
     //サーバーから手（打つ）を受け取ったときに起動する関数
-    putPieceLocal(data) {
+    //settime を渡すと data.servertime の代わりに使う（探索用：スプレッド生成を避ける）
+    putPieceLocal(data, settime) {
         const { x, y, nx, ny, type, nari, teban, roomId, servertime } = data;
-        const lmp = performance.now();
-        if (!this.canPut(nx, ny, type, teban, servertime)) return { res: false, capture: null };
+        const st = settime !== undefined ? settime : servertime;
+        if (!this.canPut(nx, ny, type, teban, st)) return { res: false, capture: null };
         this.komadaiPieces[teban === 1 ? 'sente' : 'gote'][type]--;
 
-        this.map[nx][ny] = { type: type, teban: teban, lastmovetime: servertime, lastmoveptime: performance.now() };
+        this.map[nx][ny] = { type: type, teban: teban, lastmovetime: st, lastmoveptime: st };
         this.kifu.push({ x: -1, y: -1, nx: nx, ny: ny, nari: false, type: type, teban: teban });
         return { res: true, capture: null };
     }
@@ -368,13 +386,14 @@ class Board {
         return result;
     }
 
+    //settime を渡すと data.servertime の代わりに使う（探索用：スプレッド生成を避ける）
     justMove(data, settime) {
-        const { x, y, nx, ny, type, nari, teban, roomId, servertime } = data;
+        const { x, nx, ny } = data;
 
         if (x === -1) {
-            return this.putPieceLocal(data);
+            return this.putPieceLocal(data, settime);
         }
-        const lmp = servertime;
+        const lmp = settime !== undefined ? settime : data.servertime;
         let cap = null;
         if (this.map[nx][ny] !== null) {
             cap = this.map[nx][ny].type
@@ -387,7 +406,7 @@ class Board {
     }
 
     justMovePiece(data, capturePiece, lmp) {
-        const { x, y, nx, ny, type, nari, teban, roomId, servertime } = data;
+        const { x, y, nx, ny, nari, teban } = data;
         let captime = -1;
         if (capturePiece) {
             captime = this.map[nx][ny].lastmovetime;
@@ -401,11 +420,11 @@ class Board {
         }
         const oldtime = this.map[x][y].lastmovetime;
 
-        this.map[nx][ny] = { type: pieceType, teban: this.map[x][y].teban, lastmovetime: lmp, lastmoveptime: performance.now() };
+        this.map[nx][ny] = { type: pieceType, teban: this.map[x][y].teban, lastmovetime: lmp, lastmoveptime: lmp };
         this.map[x][y] = null;
 
         //棋譜更新
-        this.kifu.push({ x: x, y: y, nx: nx, ny: ny, nari: nari, teban: teban, capturePiece: capturePiece, time: servertime, captime: captime, oldtime: oldtime });
+        this.kifu.push({ x: x, y: y, nx: nx, ny: ny, nari: nari, teban: teban, capturePiece: capturePiece, time: lmp, captime: captime, oldtime: oldtime });
         return true;
     }
 
@@ -556,38 +575,27 @@ let cpuKingPos = { x: 4, y: 0 };
 let playerKingPos = { x: 4, y: 8 };
 
 
+//(x,y)の駒が(nx,ny)へ動いたとき、移動先が敵の利きにあるか（移動元は空きマスとして扱う）
 function isDanger(currentBoard, x, y, nx, ny, teban) {
     for (let i = -1; i < 2; i++) {
         for (let j = -1; j < 2; j++) {
             if (i === 0 && j === 0) continue;
-            let attackerX = nx;
-            let attackerY = ny;
-            let recursive = false;
-            while (true) {
+            const maskIdx = (i + 1) * 3 + (j * teban + 1);
+            let attackerX = nx + i;
+            let attackerY = ny + j;
+            let adjacent = true;
+            while (attackerX >= 0 && attackerX <= 8 && attackerY >= 0 && attackerY <= 8) {
+                const attacker = currentBoard.map[attackerX][attackerY];
+                if (attacker && !(attackerX === x && attackerY === y)) {
+                    if (attacker.teban !== teban) {
+                        if (adjacent && STEP_ATTACK[attacker.type][maskIdx]) return true;
+                        if (RAY_ATTACK[attacker.type][maskIdx]) return true;
+                    }
+                    break;
+                }
                 attackerX += i;
                 attackerY += j;
-                if (attackerX < 0 || attackerX > 8 || attackerY < 0 || attackerY > 8) break;
-                const attacker = currentBoard.map[attackerX][attackerY];
-                if (!attacker) {
-                    recursive = true;
-                    continue;
-                }
-                if ((attackerX === x) && (attackerY === y)) {
-                    recursive = true;
-                    continue;
-                }
-
-                if (attacker.teban === teban) break;
-                for (const move of PIECE_MOVES[attacker.type]) {
-                    if (move.dx === i && (move.dy === (j * teban))) {
-                        if (recursive) {
-                            if (move.recursive) return true;
-                        } else {
-                            return true;
-                        }
-                    }
-                }
-                break;
+                adjacent = false;
             }
         }
     }
@@ -604,34 +612,27 @@ function isDanger(currentBoard, x, y, nx, ny, teban) {
     return false;
 }
 
+//(nx,ny)が敵の利きにあるか
 function isDangerPos(currentBoard, nx, ny, teban) {
     for (let i = -1; i < 2; i++) {
         for (let j = -1; j < 2; j++) {
             if (i === 0 && j === 0) continue;
-            let attackerX = nx;
-            let attackerY = ny;
-            let recursive = false;
-            while (true) {
+            const maskIdx = (i + 1) * 3 + (j * teban + 1);
+            let attackerX = nx + i;
+            let attackerY = ny + j;
+            let adjacent = true;
+            while (attackerX >= 0 && attackerX <= 8 && attackerY >= 0 && attackerY <= 8) {
+                const attacker = currentBoard.map[attackerX][attackerY];
+                if (attacker) {
+                    if (attacker.teban !== teban) {
+                        if (adjacent && STEP_ATTACK[attacker.type][maskIdx]) return true;
+                        if (RAY_ATTACK[attacker.type][maskIdx]) return true;
+                    }
+                    break;
+                }
                 attackerX += i;
                 attackerY += j;
-                if (attackerX < 0 || attackerX > 8 || attackerY < 0 || attackerY > 8) break;
-                const attacker = currentBoard.map[attackerX][attackerY];
-                if (!attacker) {
-                    recursive = true;
-                    continue;
-                }
-
-                if (attacker.teban === teban) break;
-                for (const move of PIECE_MOVES[attacker.type]) {
-                    if (move.dx === i && (move.dy === (j * teban))) {
-                        if (recursive) {
-                            if (move.recursive) return true;
-                        } else {
-                            return true;
-                        }
-                    }
-                }
-                break;
+                adjacent = false;
             }
         }
     }
@@ -655,6 +656,7 @@ function getPieceLegalMoves(currentBoard, x, y, teban, servertime, ignoretime) {
     if (selectedPiece.teban !== teban) return [];
     if (!ignoretime && (selectedPiece.lastmovetime >= (servertime - MOVETIME * 1000))) return [];
 
+    const onCooldown = selectedPiece.lastmovetime >= (servertime - MOVETIME * 1000);
     for (const move of PIECE_MOVES[selectedPiece.type]) {
         let moveX = x;
         let moveY = y;
@@ -665,56 +667,19 @@ function getPieceLegalMoves(currentBoard, x, y, teban, servertime, ignoretime) {
             const piece = currentBoard.map[moveX][moveY];
             if (piece && piece.teban === selectedPiece.teban) break;
 
-            if (currentBoard.canPromote(y, moveY, teban, selectedPiece.type)) {
-                if (selectedPiece.lastmovetime >= (servertime - MOVETIME * 1000)) {
-                    pieceLegalMoves.push({
-                        x: x,
-                        y: y,
-                        nx: moveX,
-                        ny: moveY,
-                        nari: true,
-                        type: null,
-                        teban: teban,
-                        ignoretime: true
-                    });
-                } else {
-                    pieceLegalMoves.push({
-                        x: x,
-                        y: y,
-                        nx: moveX,
-                        ny: moveY,
-                        nari: true,
-                        type: null,
-                        teban: teban,
-                        ignoretime: false
-                    });
-                }
-            } else {
-                if (currentBoard.isTopCell(moveX, moveY, selectedPiece.type, selectedPiece.teban)) break;
-                if (selectedPiece.lastmovetime >= (servertime - MOVETIME * 1000)) {
-                    pieceLegalMoves.push({
-                        x: x,
-                        y: y,
-                        nx: moveX,
-                        ny: moveY,
-                        nari: false,
-                        type: null,
-                        teban: teban,
-                        ignoretime: true
-                    });
-                } else {
-                    pieceLegalMoves.push({
-                        x: x,
-                        y: y,
-                        nx: moveX,
-                        ny: moveY,
-                        nari: false,
-                        type: null,
-                        teban: teban,
-                        ignoretime: false
-                    });
-                }
-            }
+            const nari = currentBoard.canPromote(y, moveY, teban, selectedPiece.type);
+            if (!nari && currentBoard.isTopCell(moveX, moveY, selectedPiece.type, selectedPiece.teban)) break;
+            pieceLegalMoves.push({
+                x: x,
+                y: y,
+                nx: moveX,
+                ny: moveY,
+                nari: nari,
+                type: null,
+                teban: teban,
+                ignoretime: onCooldown,
+                sortScore: 0
+            });
 
             if (!move.recursive) break;
             if (piece) break;
@@ -739,11 +704,32 @@ function getLegalMoves(currentBoard, teban, servertime, ignoretime) {
 
 function getAllLegalPuts(currentBoard, teban) {
     const legalPuts = [];
-    if (currentBoard === null) return;
+    if (currentBoard === null) return legalPuts;
+    // 持っている駒種を先に絞っておく（マス毎に全駒種を調べない）
+    const komadai = currentBoard.komadaiPieces[teban === 1 ? 'sente' : 'gote'];
+    const availableTypes = [];
+    for (const type of KOMADAI_TYPES) {
+        if (type === 'king' || type === 'king2') continue;
+        if (komadai[type] > 0) availableTypes.push(type);
+    }
+    if (availableTypes.length === 0) return legalPuts;
     for (let i = 0; i < BOARD_SIZE; i++) {
         for (let j = 0; j < BOARD_SIZE; j++) {
-            if (currentBoard.map[i][j] === null) {
-                legalPuts.push(...getPosLegalPuts(currentBoard, i, j, teban));
+            if (currentBoard.map[i][j] !== null) continue;
+            for (const type of availableTypes) {
+                if (currentBoard.isNihu(i, j, type, teban)) continue;
+                if (currentBoard.isTopCell(i, j, type, teban)) continue;
+                legalPuts.push({
+                    x: -1,
+                    y: -1,
+                    nx: i,
+                    ny: j,
+                    nari: false,
+                    type: type,
+                    teban: teban,
+                    ignoretime: false,
+                    sortScore: 0
+                });
             }
         }
     }
@@ -1013,7 +999,8 @@ function normalAlgolysm(currentBoard, servertime) {
     }
 
     const escapeMovesRemovePawn = escapeMoves.filter(item => {
-        if (currentBoard.map[item.x][item.y] === 'pawn') return false;
+        const piece = currentBoard.map[item.x][item.y];
+        if (piece && piece.type === 'pawn') return false;
         return true;
     });
 
@@ -1087,7 +1074,8 @@ function randomMoveNoBigDanger(currentBoard, servertime) {
     });
     const noBigDanger = cpuLegalMovesKingfiltered.filter(item => {
         if (isDanger(currentBoard, item.x, item.y, item.nx, item.ny, item.teban)) {
-            if (PIECE_PRICES[item.type] > 800) return false;
+            const pieceType = item.x >= 0 ? currentBoard.map[item.x][item.y].type : item.type;
+            if (PIECE_PRICES[pieceType] > 800) return false;
         }
         return true;
     });
@@ -1142,143 +1130,501 @@ function getPosLegalPuts(currentBoard, x, y, teban) {
 }
 
 
-function randomMove(currentBoard, servertime) {
-    const cpuLegalMoves = getLegalMoves(currentBoard, -1, servertime, false);
-    cpuLegalMoves.push(...getAllLegalPuts(currentBoard, -1));
-    if (cpuLegalMoves.length > 0) {
-        const randomIndex = Math.floor(Math.random() * cpuLegalMoves.length);
-        const randomMove = cpuLegalMoves[randomIndex];
-        postMessage({ move: randomMove });
-    } else {
-        return null;
-    }
+// 探索パラメータ（CPUレベルに応じて setcpu で上書きされる）
+let SEARCH_MAX_DEPTH = 5;
+let ROOT_MOVE_LIMIT = 24;
+let SEARCH_MOVE_LIMIT = 16;
+let SEARCH_DEEP_MOVE_LIMIT = 10;
+let SEARCH_TIME_LIMIT_MS = 250;
+let PERCEPTION_DELAY_MS = 300; // 盤面変化を認識するまでの遅延（人間の知覚に相当）
+const WIN_SCORE = 1000000;
+
+function cloneMove(move) {
+    return { x: move.x, y: move.y, nx: move.nx, ny: move.ny, nari: move.nari, type: move.type, teban: move.teban };
 }
 
-function evaluateMove(move) {
-    for (let i = 0; i < BOARD_SIZE; i++) {
-        for (let j = 0; j < BOARD_SIZE; j++) {
-
-        }
-    }
-    return 0;
+function getMovePieceType(currentBoard, move) {
+    if (move.x === -1) return move.type;
+    const piece = currentBoard.map[move.x][move.y];
+    return piece ? piece.type : null;
 }
 
-function evaluateBoard(currentBoard) {
-    let score = 0;
-    // 盤上の駒の評価
+function findKingPosition(currentBoard, teban) {
     for (let x = 0; x < BOARD_SIZE; x++) {
         for (let y = 0; y < BOARD_SIZE; y++) {
             const piece = currentBoard.map[x][y];
-            if (piece) {
-                const value = PIECE_PRICES[piece.type];
-                if (piece.teban === 1) { // 先手の駒
-                    score += value;
-                } else { // 後手の駒
-                    score -= value;
-                }
+            if (piece && piece.teban === teban && (piece.type === 'king' || piece.type === 'king2')) {
+                return { x, y };
             }
         }
     }
+    return null;
+}
 
-    // 先手の持ち駒
-    for (const type of KOMADAI_TYPES) {
-        score += PIECE_PRICES[type] * currentBoard.komadaiPieces['sente'][type];
+//(nx,ny)に移動/打った駒typeが敵玉に王手をかけるか（O(1)〜射線走査のみ）
+function givesCheck(currentBoard, move, type, enemyKing, teban) {
+    if (!enemyKing) return false;
+    const dx = enemyKing.x - move.nx;
+    const dy = enemyKing.y - move.ny;
+    if (type === 'knight') {
+        return (dx === 1 || dx === -1) && dy === -2 * teban;
     }
-    // 後手の持ち駒
-    for (const type of KOMADAI_TYPES) {
-        score -= PIECE_PRICES[type] * currentBoard.komadaiPieces['gote'][type];
+    if (dx === 0 && dy === 0) return false;
+    if (dx !== 0 && dy !== 0 && Math.abs(dx) !== Math.abs(dy)) return false;
+    const sx = Math.sign(dx);
+    const sy = Math.sign(dy);
+    const idx = (sx * teban + 1) * 3 + (sy * teban + 1);
+    const dist = Math.max(Math.abs(dx), Math.abs(dy));
+    if (dist === 1) {
+        return STEP_ATTACK[type][idx] === 1 || RAY_ATTACK[type][idx] === 1;
+    }
+    if (RAY_ATTACK[type][idx] !== 1) return false;
+    // 途中に駒がないか（移動元のマスは移動後に空くので無視）
+    let cx = move.nx + sx;
+    let cy = move.ny + sy;
+    while (cx !== enemyKing.x || cy !== enemyKing.y) {
+        const p = currentBoard.map[cx][cy];
+        if (p && !(cx === move.x && cy === move.y)) return false;
+        cx += sx;
+        cy += sy;
+    }
+    return true;
+}
+
+function evaluateMove(currentBoard, move, enemyKing, dangerCache, defendCache) {
+    const type = getMovePieceType(currentBoard, move);
+    if (!type) return -Infinity;
+
+    let score = 0;
+    const price = PIECE_PRICES[type];
+    const target = currentBoard.map[move.nx][move.ny];
+    if (target && target.teban !== move.teban) {
+        score += PIECE_PRICES[target.type] * 12 - price;
+    }
+    if (move.nari) score += PIECE_PRICES[getPromotedType(type)] - price + 180;
+
+    let dist = 0;
+    if (enemyKing) {
+        const dx = move.nx - enemyKing.x;
+        const dy = move.ny - enemyKing.y;
+        dist = dx * dx + dy * dy;
+    }
+    score += Math.max(0, 18 - dist) * 16;
+
+    // 王手になる手は読みの候補として優先（詰み筋の発見率を上げる）
+    if (givesCheck(currentBoard, move, type, enemyKing, move.teban)) score += 260;
+
+    // 移動先の危険判定（同一局面内なのでマス単位でキャッシュできる）
+    let danger;
+    const cacheIdx = move.nx * 9 + move.ny;
+    if (dangerCache[cacheIdx] !== 0) {
+        danger = dangerCache[cacheIdx] === 1;
+    } else {
+        danger = isDangerPos(currentBoard, move.nx, move.ny, move.teban);
+        dangerCache[cacheIdx] = danger ? 1 : 2;
+    }
+    if (danger) {
+        if (move.x === -1) {
+            // 打ち込みは味方の利きで支えられていれば取られても取り返せる（敵玉頭の金打ちなど）
+            let defended;
+            if (defendCache[cacheIdx] !== 0) {
+                defended = defendCache[cacheIdx] === 1;
+            } else {
+                defended = isDangerPos(currentBoard, move.nx, move.ny, -move.teban);
+                defendCache[cacheIdx] = defended ? 1 : 2;
+            }
+            score -= price * (defended ? 0.2 : 0.75);
+        } else {
+            score -= price * 0.75;
+        }
+        if (type === 'king' || type === 'king2') score -= 50000;
+    }
+    if (move.x === -1) {
+        // 定額ボーナス：価格比例にすると大駒打ちばかりが候補上位を占め、
+        // 玉の退路を抑える金銀打ちなどが読みから漏れる
+        score += 80;
     }
     return score;
 }
 
-function minimax(boardcopy, servertime, depth, isMaximizingPlayer, newMove = null) {
-    // 深さが0になったか、ゲームが終了したら盤面を評価
-    if (depth >= 3) {
-        let val = evaluateBoard(boardcopy);
-        if (newMove && newMove.nx >= 0 && newMove.ny >= 0 && isDangerPos(boardcopy, newMove.nx, newMove.ny, newMove.teban)) {
-            const piece = boardcopy.map[newMove.nx][newMove.ny]
-            if (piece) {
-                val -= 2 * PIECE_PRICES[piece.type] * newMove.teban;
-            }
-        }
-        return { val: val, newMove };
+function getSearchMoves(currentBoard, teban, servertime, ignoretime, limit, randomize) {
+    const legalMoves = getLegalMoves(currentBoard, teban, servertime, ignoretime);
+    legalMoves.push(...getAllLegalPuts(currentBoard, teban));
+    // シャッフルは指し手に多様性を持たせるためのものなのでルートだけで十分
+    //（探索内部ノードは決定的な並びの方が速く、枝刈りも安定する）
+    if (randomize) shuffleArray(legalMoves);
+    // 評価値を先に1回だけ計算してからソート（コンパレータ内で評価すると O(n log n) 回呼ばれて重い）
+    const enemyKing = findKingPosition(currentBoard, -teban);
+    const dangerCache = new Int8Array(81); // 0=未計算 1=危険 2=安全
+    const defendCache = new Int8Array(81); // 0=未計算 1=守りあり 2=守りなし
+    for (const m of legalMoves) {
+        m.sortScore = evaluateMove(currentBoard, m, enemyKing, dangerCache, defendCache);
     }
-
-    const legalMoves = [];
-    if (depth === 1) {
-        legalMoves.push(...getLegalMoves(boardcopy, isMaximizingPlayer ? 1 : -1, servertime, false));
-    } else {
-        legalMoves.push(...getLegalMoves(boardcopy, isMaximizingPlayer ? 1 : -1, servertime, true));
-    }
-
-    legalMoves.push(...getAllLegalPuts(boardcopy, isMaximizingPlayer ? 1 : -1))
-
-    if (isMaximizingPlayer) { // 先手 (最大化) のターン
-        let maxEval = -Infinity;
-        let maxMove = null;
-        for (const move of legalMoves) {
-            const result = boardcopy.justMove({ ...move, servertime: servertime }); // 手を指す
-            const evalpoint = minimax(boardcopy, servertime, depth + 1, false, move); // 相手のターンへ
-            boardcopy.undoMove(); // 手を戻す
-            if (evalpoint.val > maxEval) {
-                maxMove = { x: move.x, y: move.y, nx: move.nx, ny: move.ny, nari: move.nari, type: move.type, teban: move.teban };
-            }
-            maxEval = Math.max(maxEval, evalpoint.val);
-        }
-        return { val: maxEval, move: maxMove };
-    } else { // 後手 (最小化) のターン
-        let minEval = Infinity;
-        let minMove = null;
-        for (const move of legalMoves) {
-            const result = boardcopy.justMove({ ...move, servertime: servertime }); // 手を指す
-            const evalpoint = minimax(boardcopy, servertime, depth + 1, true, move); // 相手のターンへ
-            boardcopy.undoMove(); // 手を戻す
-            if (evalpoint.val < minEval) {
-                minEval = evalpoint.val;
-                minMove = { x: move.x, y: move.y, nx: move.nx, ny: move.ny, nari: move.nari, type: move.type, teban: move.teban };
-            }
-        }
-        return { val: minEval, move: minMove };
-    }
+    legalMoves.sort((a, b) => b.sortScore - a.sortScore);
+    if (legalMoves.length > limit) legalMoves.length = limit;
+    return legalMoves;
 }
 
-function findBestMove(depth, servertime) {
-    let bestMove = null;
-    let bestNext = null;
-    const isMaximizingPlayer = false;
-    let bestValue = isMaximizingPlayer ? -Infinity : Infinity;
+//玉の守りの評価（周囲の味方駒ボーナス + 王手ペナルティ + 無闇な前進ペナルティ）
+function kingSafetyScore(currentBoard, kingPos, teban) {
+    let safety = 0;
+    for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+            if (i === 0 && j === 0) continue;
+            const x = kingPos.x + i;
+            const y = kingPos.y + j;
+            if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) continue;
+            const piece = currentBoard.map[x][y];
+            if (piece && piece.teban === teban) safety += 25;
+        }
+    }
+    const advance = teban === 1 ? (8 - kingPos.y) : kingPos.y;
+    safety -= advance * 100;
+    if (isDangerPos(currentBoard, kingPos.x, kingPos.y, teban)) safety -= 700;
+    return safety;
+}
 
-    const boardcopy = copyBoard();
-    const legalMoves = getLegalMoves(boardcopy, isMaximizingPlayer ? 1 : -1, servertime, false);
-    legalMoves.push(...getAllLegalPuts(boardcopy, isMaximizingPlayer ? 1 : -1));
-    if (legalMoves.length === 0) return null;
+// evaluateBoard用スクラッチ（リーフ毎の配列確保とGCを避ける）
+const EVAL_PIECES = new Array(40);
+const EVAL_XS = new Int8Array(40);
+const EVAL_YS = new Int8Array(40);
 
-    let moveValues = [];
+function evaluateBoard(currentBoard, servertime, depth) {
+    let score = 0;
+    let senteKing = null;
+    let goteKing = null;
+    let pieceCount = 0;
 
+    // 盤上の駒の評価
+    for (let x = 0; x < BOARD_SIZE; x++) {
+        const col = currentBoard.map[x];
+        for (let y = 0; y < BOARD_SIZE; y++) {
+            const piece = col[y];
+            if (!piece) continue;
+            if (piece.type === 'king' || piece.type === 'king2') {
+                if (piece.teban === 1) senteKing = { x: x, y: y };
+                else goteKing = { x: x, y: y };
+                continue;
+            }
+            EVAL_PIECES[pieceCount] = piece;
+            EVAL_XS[pieceCount] = x;
+            EVAL_YS[pieceCount] = y;
+            pieceCount++;
+            const value = PIECE_PRICES[piece.type];
+            const advance = piece.teban === 1 ? (8 - y) : y;
+            const center = 8 - (Math.abs(4 - x) + Math.abs(4 - y));
+            score += (value + advance * 9 + center * 5) * piece.teban;
+        }
+    }
+
+    // 持ち駒（盤上よりわずかに高く評価：打ち込みの自由度）
+    for (const type of KOMADAI_TYPES) {
+        score += PIECE_PRICES[type] * 1.05 * currentBoard.komadaiPieces['sente'][type];
+        score -= PIECE_PRICES[type] * 1.05 * currentBoard.komadaiPieces['gote'][type];
+    }
+
+    // 勝敗は深さで補正し、早い勝ちを優先させる
+    if (!senteKing || currentBoard.komadaiPieces['gote']['king'] > 0) return -WIN_SCORE + depth;
+    if (!goteKing || currentBoard.komadaiPieces['sente']['king2'] > 0) return WIN_SCORE - depth;
+    // トライルール：敵陣の玉初期位置に到達したら勝ち
+    if (senteKing.x === 4 && senteKing.y === 0) return WIN_SCORE - depth;
+    if (goteKing.x === 4 && goteKing.y === 8) return -WIN_SCORE + depth;
+
+    // 取られそうな駒のペナルティ
+    // クールダウン中（動かした直後）の駒は逃げられないため重く見る
+    for (let i = 0; i < pieceCount; i++) {
+        const piece = EVAL_PIECES[i];
+        const value = PIECE_PRICES[piece.type];
+        const px = EVAL_XS[i];
+        const py = EVAL_YS[i];
+        if (!isDangerPos(currentBoard, px, py, piece.teban)) continue;
+        const defended = isDangerPos(currentBoard, px, py, -piece.teban);
+        const stuck = servertime - piece.lastmovetime < MOVETIME * 1000;
+        let loss = 0;
+        if (!defended) loss = value * 0.8;
+        else if (stuck) loss = value * 0.4;
+        score -= loss * piece.teban;
+    }
+
+    score += kingSafetyScore(currentBoard, senteKing, 1);
+    score -= kingSafetyScore(currentBoard, goteKing, -1);
+    return score;
+}
+
+//senteDouble: リアルタイム性の考慮。連続2手は基本的に割り込めない：
+//相手が反応するには知覚＋判断＋入力（500ms超）が必要で、連続着手の間隔より遅い。
+//割り込めるのは1手目を「一点読み」していた場合のみで、その場合の保険は
+//PAIR_A_SAFETY（1手目単体でも成立する手だけをコンボにする）が担う。
+//  1 = 次のsente（プレイヤー）ノードで連続手を許可（このノードの後、フラグ2を子に渡す）
+//  2 = このsenteノードは連続2手目：全種の手を指せる。指さない選択も可
+function alphaBeta(boardcopy, servertime, depth, maxDepth, teban, alpha, beta, deadline, senteDouble) {
+    if (performance.now() > deadline || depth >= maxDepth) {
+        return evaluateBoard(boardcopy, servertime, depth);
+    }
+    if (boardcopy.komadaiPieces['sente']['king2'] > 0) return WIN_SCORE - depth;
+    if (boardcopy.komadaiPieces['gote']['king'] > 0) return -WIN_SCORE + depth;
+    // トライルール
+    const senteTry = boardcopy.map[4][0];
+    if (senteTry && senteTry.type === 'king') return WIN_SCORE - depth;
+    const goteTry = boardcopy.map[4][8];
+    if (goteTry && goteTry.type === 'king2') return -WIN_SCORE + depth;
+
+    const moveLimit = depth >= 3 ? SEARCH_DEEP_MOVE_LIMIT : SEARCH_MOVE_LIMIT;
+
+    // 連続2手目ノード：全種の手＋「指さない」選択（depthは消費しない）
+    // クールダウンを尊重するので1手目に使った駒は自動的に除外される
+    if (teban === 1 && senteDouble === 2) {
+        let value = alphaBeta(boardcopy, servertime, depth, maxDepth, -1, alpha, beta, deadline, 0);
+        alpha = Math.max(alpha, value);
+        if (alpha < beta) {
+            const seconds = getSearchMoves(boardcopy, 1, servertime, false, moveLimit, false);
+            for (const move of seconds) {
+                const result = boardcopy.justMove(move, servertime);
+                if (!result.res) continue;
+                value = Math.max(value, alphaBeta(boardcopy, servertime, depth + 1, maxDepth, -1, alpha, beta, deadline, 0));
+                boardcopy.undoMove();
+                alpha = Math.max(alpha, value);
+                if (alpha >= beta) break;
+            }
+        }
+        return value;
+    }
+
+    // ignoretime=false: 探索内でもクールダウンを尊重する。探索の読み幅（1〜2秒）は
+    // クールダウン（7秒）より短いため「木の中で一度動かした駒はもう動けない」が正確なモデル。
+    // これにより「玉が王手駒を取ってそのまま逃げる」ような現実には不可能な受けを読まなくなる。
+    const legalMoves = getSearchMoves(boardcopy, teban, servertime, false, moveLimit, false);
+    if (legalMoves.length === 0) return evaluateBoard(boardcopy, servertime, depth);
+
+    if (teban === 1) {
+        // senteDouble=1なら次も手番を渡さず連続2手目（打ちのみ）ノードへ
+        const nextTeban = senteDouble === 1 ? 1 : -1;
+        const nextFlag = senteDouble === 1 ? 2 : 0;
+        let value = -Infinity;
+        for (const move of legalMoves) {
+            const result = boardcopy.justMove(move, servertime);
+            if (!result.res) continue;
+            value = Math.max(value, alphaBeta(boardcopy, servertime, depth + 1, maxDepth, nextTeban, alpha, beta, deadline, nextFlag));
+            boardcopy.undoMove();
+            alpha = Math.max(alpha, value);
+            if (alpha >= beta) break;
+        }
+        return value;
+    }
+
+    let value = Infinity;
     for (const move of legalMoves) {
-        const result = boardcopy.movePieceLocal({ ...move, servertime: servertime });
-
-        // isMaximizingPlayerを反転させて次の手番の評価を求める
-        const boardValue = minimax(boardcopy, servertime, depth + 1, isMaximizingPlayer);
-        moveValues.push({ move: move, val: boardValue.val, next: boardValue.move });
+        const result = boardcopy.justMove(move, servertime);
+        if (!result.res) continue;
+        value = Math.min(value, alphaBeta(boardcopy, servertime, depth + 1, maxDepth, -teban, alpha, beta, deadline, senteDouble));
         boardcopy.undoMove();
+        beta = Math.min(beta, value);
+        if (alpha >= beta) break;
+    }
+    return value;
+}
+
+// 玉の自発的な移動はこの差以上の改善があるときだけ（リアルタイムでは玉のクールダウン温存が最優先。
+// 詰み回避などはWIN_SCOREスケールの差になるので必ずこの閾値を超える）
+const KING_MOVE_MARGIN = 400;
+// 静観（パス）判定の許容値：パスよりこの値以上悪い手しかないときだけ待つ。
+// パスの木は指し手の木より総手数が1手少なく、地平線効果で±数百点の非対称が出るため、
+// その範囲では「指す」側に倒す（待つのは明確に悪化する手しかない場合のみ）。
+// ただし許容帯内で指せるのは「安全な手」だけ（isRootMoveSafe）。
+// 歩の突き捨てのような小さな損は許容帯に紛れ込むため、値だけでは弾けない。
+const WAIT_TOLERANCE = 250;
+
+//許容帯内で指してよい「安全な手」か判定する
+//・同等以上の駒を取る手は安全（交換が成立）
+//・移動先に敵の利きがなければ安全
+//・利きがあっても味方の守りがあり、駒が安ければ安全（歩の交換など）
+//・それ以外（タダ捨てになる手）は不可
+function isRootMoveSafe(currentBoard, move) {
+    const moverType = move.x === -1 ? move.type : currentBoard.map[move.x][move.y].type;
+    const moverPrice = PIECE_PRICES[moverType];
+    const target = currentBoard.map[move.nx][move.ny];
+    if (target && PIECE_PRICES[target.type] * TRADE_PRICE_MAG >= moverPrice) return true;
+    const attacked = move.x === -1
+        ? isDangerPos(currentBoard, move.nx, move.ny, move.teban)
+        : isDanger(currentBoard, move.x, move.y, move.nx, move.ny, move.teban);
+    if (!attacked) return true;
+    // 移動元を除いた味方の守りがあるか
+    const defended = move.x === -1
+        ? isDangerPos(currentBoard, move.nx, move.ny, -move.teban)
+        : isDanger(currentBoard, move.x, move.y, move.nx, move.ny, -move.teban);
+    if (defended && moverPrice <= 200) return true;
+    return false;
+}
+
+// ===== 連続2手プラン（コンボ）の設計 =====
+// 事前に決めた2手を続けて入力する場合、間隔は入力速度だけで決まり
+// （打ち＝ショートカットで速い、盤上手＝通常入力）、相手の反応
+// （知覚＋判断＋入力で500ms超）より速い。よって一点読みされていない限り
+// 連続2手は手の種類を問わず割り込まれない。相手側の連続2手も同条件でsenteDoubleとして常に読む。
+const PAIR_MARGIN = 120;       // 連続2手プランが単手より明確に良いと判断する閾値
+const PAIR_A_CANDIDATES = 4;   // 連続手の1手目に試すルート候補数
+const PAIR_B_LIMIT = 6;        // 連続手の2手目候補数
+const PAIR_TIME_RATIO = 0.35;  // 思考時間のうち連続手探索に確保する割合
+// 「相手がこちらの1手目を読んでいた場合」だけコンボは割り込まれる。その場合でも
+// 1手目単体が成立している（パスと比べて大損しない）プランだけを採用する＝読まれた時の保険。
+// 読まれていなければコンボの上振れ、読まれていれば単手として成立、のどちらでも損しない。
+const PAIR_A_SAFETY = 150;
+
+//反復深化探索：時間いっぱいまで徐々に深く読む
+//玉を動かす手は「パス（何もしない）」より明確に良いときだけ採用する。
+//玉のクールダウンを温存しておかないと、王手された瞬間に逃げられず負けるため。
+function findBestMove(servertime) {
+    const boardcopy = copyBoard();
+    const rootMoves = getSearchMoves(boardcopy, -1, servertime, false, ROOT_MOVE_LIMIT, true);
+    if (rootMoves.length === 0) return null;
+
+    const kingPos = findKingPosition(boardcopy, -1);
+    const isKingMove = (move) => kingPos !== null && move.x === kingPos.x && move.y === kingPos.y;
+
+    // 思考時間を単手探索（反復深化）と連続2手プラン探索に分割
+    const startNow = performance.now();
+    const fullDeadline = startNow + SEARCH_TIME_LIMIT_MS;
+    const idDeadline = startNow + SEARCH_TIME_LIMIT_MS * (1 - PAIR_TIME_RATIO);
+
+    let bestAny = null;
+    let bestAnyValue = Infinity;
+    let bestNonKing = null;
+    let bestNonKingValue = Infinity;
+    let passValueFinal = Infinity;
+    let lastDepth = 0;
+    let lastValues = null; // 完了した最終深さでの全ルート手の値（連続手プランの候補選びに使う）
+
+    for (let depth = 2; depth <= SEARCH_MAX_DEPTH; depth++) {
+        let curBest = null;
+        let curBestValue = Infinity;
+        let curNonKing = null;
+        let curNonKingValue = Infinity;
+        let aborted = false;
+        const curValues = [];
+
+        // パス基準値：CPUが指さず相手だけが動いた場合の評価（連続手モデルも同一条件）
+        const passValue = alphaBeta(boardcopy, servertime, 1, depth, 1, -Infinity, Infinity, idDeadline, 1);
+        const passComplete = performance.now() <= idDeadline;
+
+        for (const move of rootMoves) {
+            if (performance.now() > idDeadline) {
+                aborted = true;
+                break;
+            }
+            const result = boardcopy.justMove(move, servertime);
+            if (!result.res) continue;
+
+            // CPU is gote, so lower board scores are better.
+            // senteDouble=1: プレイヤーはCPUの応手を待たず連続2手で咎めてくる可能性を読む
+            const boardValue = alphaBeta(boardcopy, servertime, 1, depth, 1, -Infinity, curBestValue, idDeadline, 1);
+            boardcopy.undoMove();
+            curValues.push({ move: move, value: boardValue });
+            if (boardValue < curBestValue || !curBest) {
+                curBestValue = boardValue;
+                curBest = move;
+            }
+            if (!isKingMove(move) && (boardValue < curNonKingValue || !curNonKing)) {
+                curNonKingValue = boardValue;
+                curNonKing = move;
+            }
+        }
+
+        if (aborted || !curBest) {
+            // 反復が中断しても、前回最善手を先頭に並べて深く再探索済みなので
+            // 完了したルート手までの部分結果は有効（深い反復に使った時間を無駄にしない）
+            if (curBest && passComplete) {
+                bestAny = curBest;
+                bestAnyValue = curBestValue;
+                bestNonKing = curNonKing;
+                bestNonKingValue = curNonKingValue;
+                passValueFinal = passValue;
+            }
+            break;
+        }
+
+        bestAny = curBest;
+        bestAnyValue = curBestValue;
+        bestNonKing = curNonKing;
+        bestNonKingValue = curNonKingValue;
+        passValueFinal = passValue;
+        lastDepth = depth;
+        lastValues = curValues;
+        // 前回の最善手を先頭に置くと次の反復で枝刈りが効きやすい
+        const idx = rootMoves.indexOf(curBest);
+        if (idx > 0) {
+            rootMoves.splice(idx, 1);
+            rootMoves.unshift(curBest);
+        }
+        if (performance.now() > idDeadline) break;
     }
 
-    shuffleArray(moveValues);
+    if (!bestAny) return null;
+    // 勝ち筋（トライ・王取り）が見えていれば必ず指す
+    if (bestAnyValue < -WIN_SCORE / 2) return { bestMove: cloneMove(bestAny), bestNext: null };
 
-    if (isMaximizingPlayer) { // 先手は評価値が最大のものを探す
-        moveValues.sort((a, b) => b.val - a.val);
-        bestValue = moveValues[0].val;
-        bestMove = moveValues[0].move;
-        bestNext = moveValues[0].next;
-    } else {
-        moveValues.sort((a, b) => a.val - b.val);
-        bestValue = moveValues[0].val;
-        bestMove = moveValues[0].move;
-        bestNext = moveValues[0].next;
-
+    // ===== 連続2手プラン探索 =====
+    // 前提：相手が反応するには知覚＋判断＋入力（500ms超）が必要なため、
+    // 連続2手は手の種類を問わず基本的に割り込まれない。
+    // 例外は相手が1手目を「一点読み」していた場合のみ。その保険として、
+    // 1手目単体でも成立する（パスと比べて大損しない）プランだけを候補にする。
+    let pair = null;
+    if (lastValues && lastDepth >= 2) {
+        const sorted = lastValues.slice().sort((a, b) => a.value - b.value);
+        let pairBestValue = Infinity;
+        let tried = 0;
+        for (const cand of sorted) {
+            if (tried >= PAIR_A_CANDIDATES) break;
+            if (performance.now() > fullDeadline) break;
+            if (isKingMove(cand.move)) continue;            // 玉はコンボに使わない（温存）
+            if (cand.value > passValueFinal + PAIR_A_SAFETY) continue; // 読まれた場合の保険
+            tried++;
+            const resA = boardcopy.justMove(cand.move, servertime);
+            if (!resA.res) continue;
+            // 2手目候補（クールダウン尊重：1手目に使った駒は除外。取った駒の即打ちも含む）
+            const bMoves = getSearchMoves(boardcopy, -1, servertime, false, PAIR_B_LIMIT, false);
+            for (const b of bMoves) {
+                if (performance.now() > fullDeadline) break;
+                if (kingPos && b.x === kingPos.x && b.y === kingPos.y) continue; // 玉は温存
+                const resB = boardcopy.justMove(b, servertime);
+                if (!resB.res) continue;
+                // A+Bで2手消費する分、単手探索と同じ地平線になるよう1段深く読む
+                const v = alphaBeta(boardcopy, servertime, 2, lastDepth + 1, 1, -Infinity, pairBestValue, fullDeadline, 1);
+                boardcopy.undoMove();
+                if (v < pairBestValue) {
+                    pairBestValue = v;
+                    pair = { a: cand.move, b: b, value: v };
+                }
+            }
+            boardcopy.undoMove();
+        }
     }
-    return { bestMove: bestMove, bestNext: bestNext };
+
+    // 連続2手が単手・パスより明確に良ければ2手セットで指す
+    if (pair && pair.value < Math.min(bestAnyValue, passValueFinal) - PAIR_MARGIN) {
+        return { bestMove: cloneMove(pair.a), bestNext: cloneMove(pair.b) };
+    }
+    // 値の良い順に「指してよい手」を探す：
+    //  ・パスより明確に良い手はそのまま指す
+    //  ・許容帯（地平線ノイズの範囲）の手は安全な手だけ指す（歩の突き捨て等を除外）
+    //  ・玉の手は別ゲート（王手時は逃げ優先、平時は大きな改善があるときだけ）
+    const kingInDanger = kingPos !== null && isDangerPos(boardcopy, kingPos.x, kingPos.y, -1);
+    const candidates = (lastValues && lastValues.length > 0)
+        ? lastValues.slice().sort((a, b) => a.value - b.value)
+        : [{ move: bestAny, value: bestAnyValue }];
+    for (const cand of candidates) {
+        if (cand.value >= passValueFinal + WAIT_TOLERANCE) break; // 以降はさらに悪い手のみ
+        if (isKingMove(cand.move)) {
+            if (kingInDanger ? cand.value < passValueFinal + WAIT_TOLERANCE
+                : cand.value < passValueFinal - KING_MOVE_MARGIN) {
+                return { bestMove: cloneMove(cand.move), bestNext: null };
+            }
+            continue;
+        }
+        if (cand.value < passValueFinal || isRootMoveSafe(boardcopy, cand.move)) {
+            return { bestMove: cloneMove(cand.move), bestNext: null };
+        }
+    }
+    return { bestMove: null, wait: true };
 }
 function shuffleArray(array) {
     // 元の配列を直接変更する場合
@@ -1286,30 +1632,59 @@ function shuffleArray(array) {
         // 0からiまでのランダムなインデックスを選択
         const j = Math.floor(Math.random() * (i + 1));
 
-        // array[i] と array[j] を交換
-        [array[i], array[j]] = [array[j], array[i]];
+        // array[i] と array[j] を交換（分割代入は一時配列を生成して遅いので使わない）
+        const tmp = array[i];
+        array[i] = array[j];
+        array[j] = tmp;
     }
 }
 function setcpu(lev) {
-    //レベル０アルゴリズム（ランダムムーブ）
-    if (lev === '0') {
-        level0cpu();
-    } else if (lev === '1') {
+    if (lev === '0' || lev === '1') {
         level1cpu();
     } else if (lev === '2') {
         level2cpu();
-    } else if (lev === '3') {
-        level3cpu();
+    } else if (lev === '4') {
+        level4cpu();
+    } else if (lev === '5') {
+        level5cpu();
+    } else {
+        level3cpu(); // 不明な値は中間レベルにフォールバック
     }
 }
 
-function level0cpu() {
+//反応層＋探索層をまとめて起動する共通関数
+//連続2手プランの2手目の着手間隔(ms)：
+//  comboDropDelay: 駒打ち（ショートカット入力なので速い）
+//  comboMoveDelay: 盤上の駒を動かす手（通常の入力速度）
+//どちらも事前に決めてある手なので、相手の「知覚＋判断＋入力」（500ms超）より速く着手できる。
+function startSearchCpu(reactiveInterval, searchInterval, searchDelayRand, comboDropDelay, comboMoveDelay) {
     setInterval(() => {
         const servertime = startTime + performance.now();
-        randomMove(board, servertime);
-    }, 3000);
+        normalAlgolysm(board, servertime);
+    }, reactiveInterval);
+    setInterval(() => {
+        const rand = searchDelayRand * Math.random();
+        setTimeout(() => {
+            const servertime = startTime + performance.now();
+            const best = findBestMove(servertime);
+            if (best && best.bestMove !== null) {
+                postMessage({ move: best.bestMove });
+                if (best.bestNext) {
+                    const next = best.bestNext;
+                    const delay = next.x === -1 ? comboDropDelay : comboMoveDelay;
+                    setTimeout(() => {
+                        postMessage({ move: next });
+                    }, delay);
+                }
+            } else if (best === null) {
+                randomMoveNoBigDanger(board, servertime);
+            }
+            // best.wait === true のときは指さずに静観（クールダウンを温存して反応に備える）
+        }, rand);
+    }, searchInterval);
 }
 
+//レベル1：反応が遅く、読みなし（入門向け）
 function level1cpu() {
     setInterval(() => {
         const servertime = startTime + performance.now();
@@ -1319,6 +1694,7 @@ function level1cpu() {
     }, 2000);
 }
 
+//レベル2：反応は速いが読みなし
 function level2cpu() {
     setInterval(() => {
         const servertime = startTime + performance.now();
@@ -1333,34 +1709,47 @@ function level2cpu() {
     }, 1000);
 }
 
-let count = 0;
+// ===== 反応速度の設計 =====
+// CPUの反応・連続手の速度は基本的に人間と同等にする（超人的な反応はさせない）。
+//   実効反応速度 ≈ 知覚遅延(PERCEPTION_DELAY_MS) + 反応間隔
+//   レベル5でも合計 ≈ 250ms（反応の速い人間相当）
+// 連続2手は「事前に決めた手を続けて入力するだけ」なので反応とは別物：
+//   打ち＝ショートカット入力（速い）、盤上手＝通常入力。どちらも相手の
+//   知覚＋判断＋入力（500ms超）より速く、一点読みされない限り割り込まれない。
 
+//レベル3：浅い読み（2手）＋ゆっくりした反応（約500ms）
 function level3cpu() {
-    setInterval(() => {
-        const servertime = startTime + performance.now();
-        normalAlgolysm(board, servertime);
-    }, 100);
-    setInterval(() => {
-        const rand = 300 * Math.random();
-        setTimeout(() => {
-            const servertime = startTime + performance.now();
-            // if (count === 2) {
-            //     const best = findBestMove(0, servertime);
-            //     if (best && best.bestMove !== null) {
-            //         postMessage({ move: best.bestMove });
-            //     }
-            //     if (best && best.bestNext !== null) {
-            //         setTimeout(() => {
-            //             postMessage({ move: { ...best.bestNext, second: true } });
-            //         }, 128);
-            //     }
-            // } else {
-            randomMoveNoBigDanger(board, servertime);
-            // }
-            // count++;
-            // if (count >= 3) count = 0;
-        }, rand);
-    }, 500);
+    SEARCH_MAX_DEPTH = 2;
+    SEARCH_TIME_LIMIT_MS = 100;
+    ROOT_MOVE_LIMIT = 16;
+    SEARCH_MOVE_LIMIT = 12;
+    SEARCH_DEEP_MOVE_LIMIT = 8;
+    PERCEPTION_DELAY_MS = 300;
+    startSearchCpu(200, 900, 200, 220, 500);
+}
+
+//レベル4：中程度の読み（反復深化・最大4手）＋平均的な人間の反応（約400ms）
+function level4cpu() {
+    SEARCH_MAX_DEPTH = 4;
+    SEARCH_TIME_LIMIT_MS = 200;
+    ROOT_MOVE_LIMIT = 22;
+    SEARCH_MOVE_LIMIT = 14;
+    SEARCH_DEEP_MOVE_LIMIT = 10;
+    PERCEPTION_DELAY_MS = 280;
+    startSearchCpu(120, 550, 100, 180, 380);
+}
+
+//レベル5：深い読み（最大6手）＋速い人間相当の反応・速いサイクル
+//思考時間を増やしすぎるとワーカーがブロックされて実効反応がかえって落ちるため、
+//思考は250msに抑えつつ、読みの深さ・思考サイクル・反応・知覚・連続着手すべてでL4を上回る設計
+function level5cpu() {
+    SEARCH_MAX_DEPTH = 6;
+    SEARCH_TIME_LIMIT_MS = 250;
+    ROOT_MOVE_LIMIT = 24;
+    SEARCH_MOVE_LIMIT = 16;
+    SEARCH_DEEP_MOVE_LIMIT = 10;
+    PERCEPTION_DELAY_MS = 200;
+    startSearchCpu(50, 450, 0, 130, 280);
 }
 
 // メインスレッドからのメッセージを受信
@@ -1382,7 +1771,7 @@ onmessage = function (e) {
             } else if (move.x === playerKingPos.x && move.y === playerKingPos.y) {
                 playerKingPos = { x: move.nx, y: move.ny };
             }
-        }, 300);
+        }, PERCEPTION_DELAY_MS);
 
     }
 };

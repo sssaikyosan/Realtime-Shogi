@@ -176,7 +176,9 @@ export const serverState = new ServerState(io, JSON.parse(process.env.GAME_SERVE
 // HTTPSサーバーを起動
 const PORT = 5000;
 server.listen(PORT, () => {
-  console.log(new Date(), `HTTPS Server is running on port ${PORT})`);
+  const protocol = process.env.NODE_ENV === 'development' ? 'https' : 'http';
+  console.log(new Date(), `Matching server is running on port ${PORT}`);
+  console.log(`  -> ${protocol}://localhost:${PORT}`);
 });
 
 

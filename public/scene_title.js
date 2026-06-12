@@ -53,16 +53,16 @@ for (const lang in LANGUAGES) {
 const cpuLevelOverlay = new OverlayUI({
     x: 0.65,
     y: 0.16,
-    height: 0.19,
+    height: 0.235,
     width: 0.11,
     visible: false
 });
 
-for (let i = 0; i < 4; i++) {
+for (let i = 1; i <= 5; i++) {
     const cpulevelButton = new ButtonUI({
         text: `level${i}`,
         x: 0.0,
-        y: 0.068 - i * 0.045,
+        y: 0.09 - (i - 1) * 0.045,
         height: 0.04,
         width: 0.1,
         color: '#3241c9',
