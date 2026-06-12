@@ -1603,6 +1603,13 @@ function findBestMove(servertime) {
     if (pair && pair.value < Math.min(bestAnyValue, passValueFinal) - PAIR_MARGIN) {
         return { bestMove: cloneMove(pair.a), bestNext: cloneMove(pair.b) };
     }
+    // 絶望モード：パスしても読みの範囲で負けが確定しているなら、
+    // 安全ゲート・玉温存ゲートを外して最も粘れる手（詰みを最も遅らせる手）を指す。
+    // 静観しても結果は変わらず、動き続ければ相手のミスや時間切れを誘える。
+    if (passValueFinal > WIN_SCORE / 2 && bestAnyValue <= passValueFinal) {
+        return { bestMove: cloneMove(bestAny), bestNext: null };
+    }
+
     // 値の良い順に「指してよい手」を探す：
     //  ・パスより明確に良い手はそのまま指す
     //  ・許容帯（地平線ノイズの範囲）の手は安全な手だけ指す（歩の突き捨て等を除外）
@@ -1717,26 +1724,30 @@ function level2cpu() {
 //   打ち＝ショートカット入力（速い）、盤上手＝通常入力。どちらも相手の
 //   知覚＋判断＋入力（500ms超）より速く、一点読みされない限り割り込まれない。
 
-//レベル3：浅い読み（2手）＋ゆっくりした反応（約500ms）
+// このゲームは指し手の精度だけでなく速度が強さに直結するため、
+// レベル差は「読みの深さ」と「速度（反応・思考サイクル・連続着手）」の両方でつける。
+// レベル5だけが人間上限の速度で動き、4以下は意図的に速度を落として突出させる。
+
+//レベル3：浅い読み（2手）＋ゆっくりした反応（約800ms）・遅いサイクル
 function level3cpu() {
     SEARCH_MAX_DEPTH = 2;
     SEARCH_TIME_LIMIT_MS = 100;
     ROOT_MOVE_LIMIT = 16;
     SEARCH_MOVE_LIMIT = 12;
     SEARCH_DEEP_MOVE_LIMIT = 8;
-    PERCEPTION_DELAY_MS = 300;
-    startSearchCpu(200, 900, 200, 220, 500);
+    PERCEPTION_DELAY_MS = 450;
+    startSearchCpu(350, 1300, 300, 400, 800);
 }
 
-//レベル4：中程度の読み（反復深化・最大4手）＋平均的な人間の反応（約400ms）
+//レベル4：そこそこの読み（3手）＋やや遅い人間の反応（約550ms）
 function level4cpu() {
-    SEARCH_MAX_DEPTH = 4;
-    SEARCH_TIME_LIMIT_MS = 200;
-    ROOT_MOVE_LIMIT = 22;
-    SEARCH_MOVE_LIMIT = 14;
-    SEARCH_DEEP_MOVE_LIMIT = 10;
-    PERCEPTION_DELAY_MS = 280;
-    startSearchCpu(120, 550, 100, 180, 380);
+    SEARCH_MAX_DEPTH = 3;
+    SEARCH_TIME_LIMIT_MS = 150;
+    ROOT_MOVE_LIMIT = 18;
+    SEARCH_MOVE_LIMIT = 12;
+    SEARCH_DEEP_MOVE_LIMIT = 8;
+    PERCEPTION_DELAY_MS = 350;
+    startSearchCpu(200, 900, 200, 300, 600);
 }
 
 //レベル5：深い読み（最大6手）＋速い人間相当の反応・速いサイクル
