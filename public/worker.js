@@ -1768,7 +1768,7 @@ onmessage = function (e) {
     if (e.data[0] === "gameStart") {
         const data = e.data[1];
         board = new Board();
-        startTime = data.servertime;
+        startTime = data.servertime - (data.time ?? performance.now());
         board.init(data.servertime, performance.now());
         setcpu(data.level);
     }
