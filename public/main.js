@@ -3,7 +3,7 @@ import { GameManager } from "./game_manager.js";
 import { Board } from './board.js';
 import { AudioManager } from "./audio_manager.js"; // audio_manager.jsからインポート
 import { clearTitleHTML, createTitleScene, initTitleText, nameInput, playCountText, ratingText, roomIdInput, roomJoinFailed, updateRanking } from "./scene_title.js";
-import { createPlayScene, backToRoom, endGame, endRoomGame, initGameText } from "./scene_game.js";
+import { createPlayScene, backToRoom, endGame, endRoomGame, initGameText, connectionLost } from "./scene_game.js";
 import { createRoomScene, initRoomText, setRoomData, roomUpdate, roomdata } from "./scene_room.js";
 import { CHARACTER_FOLDER, LANGUAGE_FOLDER, LANGUAGES, MOVETIME, NUM_QUOTES } from "./const.js";
 
@@ -154,17 +154,25 @@ export function connectToServer() {
       return;
     }
 
-    //@ts-ignore
-    socket = io(matchingServerUrl, { withCredentials: true });
+    // 再接続中の古い接続が残っていれば止める（残すと裏で再接続を続け、接続が増えていく）
+    if (socket) socket.disconnect();
 
-    socket.on('connect', () => {
+    //@ts-ignore
+    const newSocket = io(matchingServerUrl, { withCredentials: true });
+    socket = newSocket;
+
+    newSocket.on('connect', () => {
       console.log('Socket.IO connected successfully!');
       setupSocket(); // 接続が確立したらイベントハンドラを設定
-      resolve(socket);
+      resolve(newSocket);
     });
 
-    socket.on('connect_error', (err) => {
+    // つながらなかったら再接続を止める（呼び出し側はエラー表示してタイトルへ戻るので、
+    // 裏で再接続を続けて後からつながると、関係ない画面で切断アラートが出てしまう）
+    newSocket.on('connect_error', (err) => {
       console.error('Socket.IO connection error:', err);
+      newSocket.disconnect();
+      if (socket === newSocket) socket = null;
       reject(err);
     });
   });
@@ -172,7 +180,8 @@ export function connectToServer() {
 
 // Socket.IOサーバーから切断する関数
 export function disconnectFromServer() {
-  if (socket && socket.connected) {
+  // 未接続（自動再接続中）でも disconnect() を呼んで再接続を止める
+  if (socket) {
     socket.disconnect();
     console.log('Socket.IO disconnected.');
   }
@@ -582,12 +591,16 @@ export function setupSocket() {
     // 以前はここで sendUserId を送っていたが、requestMatch に統合されたため不要
   });
 
+  // マッチングサーバーとの接続は、マッチング待ち・部屋の作成/参加の応答待ちの間だけ使う（タイトル画面）
   socket.on('disconnect', (reason) => {
     console.log('Socket disconnected:', reason);
     if (reason !== 'io client disconnect') {
       console.error('Server initiated or network error disconnect.');
-      setScene(createTitleScene());
-      alert('サーバーとの接続が切れました。タイトルに戻ります。');
+      disconnectFromServer(); // 待っていた要求はサーバー側で消えているので再接続はしない
+      if (sceneType === 'title') {
+        setScene(createTitleScene());
+        alert('サーバーとの接続が切れました。タイトルに戻ります。');
+      }
     }
   });
 
@@ -605,13 +618,17 @@ export function setupSocket() {
     setupGameSocketHandlers(data);
   });
 
+  // タイトルへ戻るときはマッチングサーバーとの接続を切る（残すと、後でアプリ切替などで切断されたときに
+  // CPU戦の途中でも切断アラートが出てタイトルへ戻されてしまう）
   socket.on('matchFailed', () => {
     console.log("matchFailed");
+    disconnectFromServer();
     setScene(createTitleScene());
   });
 
   // マッチングキャンセル (マッチングサーバーからのイベント)
   socket.on("cancelMatch", () => {
+    disconnectFromServer();
     setScene(createTitleScene());
   });
 
@@ -632,6 +649,7 @@ export function setupSocket() {
   });
 
   socket.on("roomJoinFailed", (data) => {
+    disconnectFromServer();
     setScene(createTitleScene());
     roomJoinFailed();
   });
@@ -662,7 +680,14 @@ function setupGameSocketHandlers(roomFoundData, privateroom = false) {
   });
 
   socket.on('disconnect', (reason) => {
-    console.log("disconected");
+    console.log("disconnected:", reason);
+    if (reason === 'io client disconnect') return;
+    // オンライン対局中に切れた場合は、再接続しても元の対局には戻れないので接続を止めて対局を終える
+    //（部屋で待っている間の切断は、自動再接続で部屋に入り直す）
+    if (sceneType === 'game' && gameManager.cpu === null && !gameManager.board.finished) {
+      disconnectFromServer();
+      connectionLost();
+    }
   });
 
   socket.on('startGame', (data) => {
@@ -756,7 +781,11 @@ function setupGameSocketHandlers(roomFoundData, privateroom = false) {
     setScene(createRoomScene(data));
   });
 
-  socket.on("roomJoinFailed", (data) => {
+  // 部屋に入れなかった（部屋IDの間違い、またはアプリ切替などで切断→自動再接続したときに部屋が消えていた）
+  // ゲームサーバーとの接続は切ってタイトルへ戻る（残すと再接続のたびに入室を試みてタイトルを作り直してしまう）
+  socket.on("roomJoinFailed", async (data) => {
+    disconnectFromServer();
+    await getTitleInfo();
     setScene(createTitleScene());
     roomJoinFailed();
   });

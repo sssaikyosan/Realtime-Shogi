@@ -88,6 +88,8 @@ export const timeText = new TextUI({
 
 export const countDownText = new TextUI({
     text: () => {
+        // 終局後は表示しない（開始前に終局すると時計が止まり、カウントダウンが残ってしまう）
+        if (gameManager.board.finished) return '';
         let time = (gameManager.board.starttime - gameManager.board.time + 6000) / 1000;
         if (time <= 1) {
             return '';
@@ -149,6 +151,12 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
     if (roomteban === 'gote') teban = -1;
 
     gameManager.setRoom(roomId, teban, servertime, moveTime, pawnLimit4thRank, cpulevel);
+    // 終局処理を通らずに対局画面を離れた場合（接続切れでタイトルへ戻る等）もCPUを止める。
+    // setScene は新しいシーンを作ってから古いシーンを破棄するので、次の対局のCPUは止めない
+    const sceneCpu = gameManager.cpu;
+    playScene.destroy = () => {
+        if (sceneCpu !== null && gameManager.cpu === sceneCpu) gameManager.stopCpu();
+    };
 
     const resignButton = new ButtonUI({
         text: `${strings['resign']}`,
@@ -494,6 +502,19 @@ export function endRoomGame(data) {
     setResultText(mywin);
     characterWinMove(mywin, roomResultOverlay, data.winPlayer);
 
+    gameManager.teban = 0;
+    gameManager.board.finished = true;
+}
+
+// オンライン対局中にサーバーとの接続が切れた（スマホでアプリを切り替えた等）。
+// サーバー側では切断負けとして終局しているが、その通知は届かず、再接続しても元の対局には戻れないので、
+// ここで対局を終えてタイトルへ戻れるようにする
+export function connectionLost() {
+    if (gameManager.board.finished || gameManager.cpu !== null) return;
+    winCon.textContent = `${strings['connection-lost']}`;
+    changeRating.textContent = '';
+    setResultText(0);
+    resultOverlay.style.display = "block";
     gameManager.teban = 0;
     gameManager.board.finished = true;
 }

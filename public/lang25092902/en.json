@@ -58,6 +58,7 @@
     "resign-win": "Opponent resigned",
     "resign-lose": "Resigned",
     "try-rule": "The king has reached the target point",
+    "connection-lost": "Disconnected from the server. The game has ended.",
     "back": "Back",
     "characters": {
         "rei": {

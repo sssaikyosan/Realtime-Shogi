@@ -1,6 +1,6 @@
 // ルームUIを定義するファイル
 import { Scene } from "./scene.js";
-import { battle_img, connectToServer, disconnectFromServer, getTitleInfo, setScene, setSceneType, socket, strings } from "./main.js"; // setScene関数をインポート
+import { battle_img, connectToServer, disconnectFromServer, getTitleInfo, sceneType, setScene, setSceneType, socket, strings } from "./main.js"; // setScene関数をインポート
 import { clearTitleHTML, createTitleScene, discordButton } from "./scene_title.js"; // タイトルシーンに戻るために必要
 import { BackgroundImageUI } from "./ui_background.js";
 
@@ -115,6 +115,7 @@ saveRoomSettingsButton.addEventListener("click", () => {
 
 
 let currentRoomId = null;
+let activeRoomScene = null; // 表示中の部屋シーン
 
 function moveSubmit(teban) {
     socket.emit("moveTeban", { teban: teban });
@@ -124,10 +125,14 @@ async function leaveRoom() {
     socket.emit("leaveRoom");
     disconnectFromServer();
     await getTitleInfo();
-    setScene(createTitleScene());
+    setScene(createTitleScene()); // 部屋のHTML要素は部屋シーンの destroy で隠れる
+}
 
-    currentRoomId = null;
-    if (displayRoomIdButton.textContent === `${strings['display-room-id-off']}`) {
+//部屋画面のHTML要素をすべて隠す
+//resetRoomId: 部屋IDの表示状態も戻す（部屋を離れるとき。対局へ移るときは部屋に戻るので残す）
+function hideRoomHTML(resetRoomId) {
+    document.body.classList.remove('room-active');
+    if (resetRoomId && displayRoomIdButton.textContent === `${strings['display-room-id-off']}`) {
         displayRoomIdButton.textContent = `${strings['display-room-id']}`;
         roomIdStr.textContent = ``
     }
@@ -323,17 +328,16 @@ export function createRoomScene(data) {
     roomSettingsDisplay.style.display = 'flex'; // 部屋設定表示エリアを表示
     // 縦画面ではルーム画面の要素を縦に積むレイアウトにする（index.html の body.room-active）
     document.body.classList.add('room-active');
+    activeRoomScene = roomScene;
 
-    // シーン破棄時のイベントリスナー削除とメッセージ非表示
+    // シーン破棄時に部屋のHTML要素を隠す。退室ボタン以外（再接続で部屋に入り直せずタイトルへ戻る等）でも
+    // 部屋のUIがタイトルに重なって残らないようにする。
+    // setScene は新しいシーンを作ってから古いシーンを破棄するので、部屋→部屋の切り替えでは
+    // 新しい部屋シーンが表示した要素を隠さない
     roomScene.destroy = () => {
-        document.body.classList.remove('room-active');
-        if (copySuccessMessage) {
-            copySuccessMessage.style.display = 'none';
-            copySuccessMessage.style.opacity = '0';
-        }
-        // 部屋設定UIと表示を非表示に
-        roomSettingsOverlay.style.display = 'none';
-        roomSettingsDisplay.style.display = 'none';
+        if (activeRoomScene !== roomScene) return;
+        activeRoomScene = null;
+        hideRoomHTML(sceneType !== 'game');
     };
 
     return roomScene;

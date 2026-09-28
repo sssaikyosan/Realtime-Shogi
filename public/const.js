@@ -149,7 +149,7 @@ export const PIECE_MOVES = {
 };
 
 export const CHARACTER_FOLDER = "characters25082701"
-export const LANGUAGE_FOLDER = "lang25092901"
+export const LANGUAGE_FOLDER = "lang25092902"
 export const SOUND_FOLDER = "sounds25090701"
 export const NUM_QUOTES = 5
 export const LANGUAGES = {

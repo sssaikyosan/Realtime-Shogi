@@ -58,6 +58,7 @@
     "resign-win": "对手投子认负",
     "resign-lose": "您已投子认负",
     "try-rule": "王(玉)已到达目标位置",
+    "connection-lost": "与服务器的连接已断开，对局结束",
     "back": "返回",
     "characters": {
         "rei": {
