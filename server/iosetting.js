@@ -1,4 +1,5 @@
 import { io, serverState } from './server.js';
+import { normalizeRoomId } from './utils.js';
 
 export function ioSetup() {
     io.on("connection", (socket) => {
@@ -100,14 +101,16 @@ export function ioSetup() {
 
                 serverState.addPlayer(socket, playerInfo);
 
-                const url = serverState.rooms[data.roomId];
+                // 部屋IDは大文字で発行しているので、小文字で入力されても大文字にそろえて探す
+                const roomId = normalizeRoomId(data.roomId);
+                const url = serverState.rooms[roomId];
                 if (url) {
                     socket.emit("roomFound", {
-                        roomId: data.roomId,
+                        roomId: roomId,
                         gameServerAddress: url
                     });
                 } else {
-                    socket.emit("roomJoinFailed", { roomId: data.roomId, text: '部屋が見つかりません' });
+                    socket.emit("roomJoinFailed", { roomId: roomId, text: '部屋が見つかりません' });
                 }
             } catch (error) {
                 console.error('Error processing joinRoom:', error);

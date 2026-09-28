@@ -16,6 +16,14 @@ import { PieceHelpUI } from "./piece_help.js";
 export const discordButton = document.getElementById("discordButton");
 
 export const roomIdInput = /** @type {HTMLInputElement} */ (document.getElementById("roomIdInput"));
+// 部屋IDは大文字に統一しているので、小文字で打っても入力欄ではその場で大文字にする
+roomIdInput.addEventListener('input', () => {
+    const upper = roomIdInput.value.toUpperCase();
+    if (upper === roomIdInput.value) return;
+    const cursor = roomIdInput.selectionStart;
+    roomIdInput.value = upper;
+    roomIdInput.setSelectionRange(cursor, cursor);
+});
 export const nameInput = /** @type {HTMLInputElement} */ (document.getElementById("nameInput"));
 export const settingsButton = document.getElementById("settingsButton");
 export const bgmVolumeText = document.querySelector('label[for="bgmVolumeSlider"]');
@@ -264,7 +272,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
         setPlayerName(nameInput.value.trim());
         localStorage.setItem("playerName", playerName);
         if (playerName == "") setPlayerName(`${strings['anonymous']}`);
-        const roomId = roomIdInput.value.trim();
+        const roomId = roomIdInput.value.trim().toUpperCase();
         if (roomId) {
             connectToServer().then(socket => {
                 socket.emit("joinRoom", { roomId: roomId, name: playerName, characterName: selectedCharacterName, player_id: player_id });
