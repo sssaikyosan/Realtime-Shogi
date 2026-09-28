@@ -1,13 +1,39 @@
 import { io, serverState } from './server.js';
 import { normalizeRoomId } from './utils.js';
 
+// 受信イベントの処理で例外が出てもプロセスを落とさない。
+// Socket.IO はハンドラの例外（async の reject を含む）を受け止めないため、そのままだと
+// 形の違うデータが1つ届くだけでサーバー全体が停止する
+function guardSocketHandlers(socket) {
+    const on = socket.on.bind(socket);
+    socket.on = (event, handler) => on(event, (...args) => {
+        try {
+            const result = handler(...args);
+            if (result && typeof result.catch === 'function') {
+                result.catch((error) => console.error(`Error in socket handler "${event}":`, error));
+            }
+        } catch (error) {
+            console.error(`Error in socket handler "${event}":`, error);
+        }
+    });
+}
+
+function isObject(data) {
+    return data !== null && typeof data === 'object';
+}
+
+function isString(value) {
+    return typeof value === 'string';
+}
+
 export function ioSetup() {
     io.on("connection", (socket) => {
+        guardSocketHandlers(socket);
 
         // プレイヤーがマッチングを要求（ユーザー登録も兼ねる）
         socket.on("requestMatch", async (data) => {
             console.log("requestMatch received:", data);
-            if (!data.name || !data.characterName || !data.player_id) {
+            if (!isObject(data) || !isString(data.name) || !isString(data.characterName) || !isString(data.player_id) || !data.name || !data.characterName || !data.player_id) {
                 console.error('Invalid data for requestMatch');
                 return;
             }
@@ -52,7 +78,7 @@ export function ioSetup() {
 
         socket.on("createRoom", async (data) => {
             console.log("createRoom received:", data);
-            if (!data.name || !data.characterName || !data.player_id) {
+            if (!isObject(data) || !isString(data.name) || !isString(data.characterName) || !isString(data.player_id) || !data.name || !data.characterName || !data.player_id) {
                 console.error('Invalid data for createRoom');
                 return;
             }
@@ -82,7 +108,7 @@ export function ioSetup() {
 
         socket.on("joinRoom", async (data) => {
             console.log("joinRoom received:", data);
-            if (!data.name || !data.characterName || !data.player_id || !data.roomId) {
+            if (!isObject(data) || !isString(data.name) || !isString(data.characterName) || !isString(data.player_id) || !isString(data.roomId) || !data.name || !data.characterName || !data.player_id || !data.roomId) {
                 console.error('Invalid data for joinRoom');
                 return;
             }
