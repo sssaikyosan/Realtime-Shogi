@@ -309,6 +309,11 @@ export class Room {
 
     startRoomGame(id) {
         if (serverState.players[id].player_id !== this.ownerId) return false;
+        // 開始できるのは待機中で、先手・後手の両方に人がいるときだけ（退室と開始要求が行き違った場合など）。
+        // 確認前に startGame すると、例外で開始通知が送られないまま部屋が対局中のまま止まる
+        if (this.gameState !== 'waiting') return false;
+        const hasPlayer = (list) => list.length > 0 && list.every(playerId => serverState.players[playerId]);
+        if (!hasPlayer(this.sente) || !hasPlayer(this.gote)) return false;
         const names = this.getPlayerNames();
         const now = performance.now();
 
