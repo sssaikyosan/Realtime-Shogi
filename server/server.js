@@ -43,18 +43,18 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+// ゲームサーバーで部屋（部屋作成で作ったもの）が閉じられたときの通知。部屋ID→ゲームサーバーの対応を消す。
+// 送り主の確認はしない：消されても新しくIDで入れなくなるだけで、部屋IDを知らなければ消せない（本番と同じ動作）
 app.post('/api/roomdeleted', (req, res) => {
-  console.log(req.ip);
-  if (process.env.GAME_SERVERS.includes(req.ip)) {
-    console.log('Received roomdeleted request:', req.body);
-    // TODO: ゲームサーバーから受け取ったゲーム結果を処理するロジックを実装
-    const { roomId } = req.body;
-    if (!roomId) {
-      return res.status(400).send('Missing game result information');
-    }
-    delete serverState.rooms[roomId];
-    res.status(200).send('Game finished request received');
+  console.log('Received roomdeleted request:', req.body);
+  const { roomId } = req.body;
+  if (!roomId) {
+    return res.status(400).send('Missing game result information');
   }
+
+  delete serverState.rooms[roomId];
+
+  res.status(200).send('Game finished request received');
 });
 
 app.get('/api/title-info', async (req, res) => {
@@ -99,13 +99,7 @@ app.get('/api/title-info', async (req, res) => {
       postgure.readTopPlayers()
     ]);
 
-    if (process.env.CHANGE_IP.includes(req.ip) && process.env.CHANGE_ID.includes(playerInfo.player_id)) {
-      console.log("change ID ", playerInfo.player_id);
-      playerInfo.player_id = generateUniqueId();
-      console.log("changed ID ", playerInfo.player_id);
-      await postgure.savePlayerInfo(playerInfo);
-    }
-
+    // DBにないIDなら新規作成
     if (!playerInfo) {
       const newPlayerId = generateUniqueId();
       playerInfo = {
