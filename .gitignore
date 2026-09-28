@@ -3,3 +3,6 @@ node_modules
 
 .claude/
 CLAUDE.md
+AGENTS.md
+assets_work/
+tools/
