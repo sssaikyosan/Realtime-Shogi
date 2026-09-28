@@ -16,6 +16,8 @@
     "matching": "Matching",
     "cancel": "Cancel",
     "name": "Name",
+    "auto-promote": "Auto\nPromo",
+    "manual-text-touch": "Tap a piece to select it, then tap a square to move\n(Drop pieces in hand the same way)\n\nAuto Promo switch - While OFF, pieces move without promoting",
     "resign": "Resign",
     "anonymous": "Anonymous",
     "change-character": "Character",

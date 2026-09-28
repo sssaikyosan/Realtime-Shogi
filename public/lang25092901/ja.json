@@ -16,6 +16,8 @@
     "matching": "マッチング中",
     "cancel": "キャンセル",
     "name": "名前",
+    "auto-promote": "自動\n成り",
+    "manual-text-touch": "駒をタップで選択 → 移動先をタップで移動\n（持ち駒も同じ操作で打てます）\n\n自動成りスイッチ - OFFの間は成らずに移動",
     "resign": "投了",
     "anonymous": "名無しの棋士",
     "change-character": "キャラ変更",

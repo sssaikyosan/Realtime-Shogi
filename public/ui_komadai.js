@@ -1,9 +1,17 @@
-import { CELL_SIZE, KOMADAI_WIDTH, KOMADAI_HEIGHT, BOARD_SIZE, KOMADAI_OFFSET_RATIO, BOARD_COLOR, LINE_COLOR, KOMADAI_TIMER_SIZE, KOMADAI_TIMER_LINEWITH, MOVETIME, KOMADAI_TIMER_COLOR, KOMADAI_TIMER_OFFSET_X, KOMADAI_TIMER_OFFSET_Y } from "./const.js";
+import { MOUSE_HIGHLIGHT_COLOR, CELL_SIZE, KOMADAI_WIDTH, KOMADAI_HEIGHT, BOARD_SIZE, KOMADAI_OFFSET_RATIO, BOARD_COLOR, LINE_COLOR, KOMADAI_TIMER_SIZE, KOMADAI_TIMER_LINEWITH, MOVETIME, KOMADAI_TIMER_COLOR, KOMADAI_TIMER_OFFSET_X, KOMADAI_TIMER_OFFSET_Y } from "./const.js";
 import { ctx, gameManager, pieceImages } from "./main.js";
 import { drawText, drawTextWithDoubleOutline } from "./utils.js";
 
+// 縦画面用の駒台（PC版と同じ並びの駒台を、盤の右下＝自分・左上＝相手に置く）
+// 寸法は盤の中心からのゲーム内座標。portraitScale で駒台だけ縮小できる
+export const KOMADAI_PORTRAIT_GAP = CELL_SIZE * 0.15;
+
 export class KomadaiUI {
   cellSize = CELL_SIZE;
+  // 'side': 盤の横に置く（横画面） / 'portrait': 盤の右下（自分）・左上（相手）に置く（縦画面）
+  layout = 'side';
+  // 縦画面で駒台だけを縮小する倍率（画面の高さが足りないとき用）
+  portraitScale = 1;
   constructor(params) {
     this.x = params.x;
     this.y = params.y;
@@ -15,7 +23,12 @@ export class KomadaiUI {
     ['silver', 'gold', 'bishop'],
     ['king', 'king2', null]];
 
-  draw(ctx, scale, draggingPiece, viewteban) {
+  draw(ctx, scale, draggingPiece, viewteban, selectedType = null) {
+    if (this.layout === 'portrait') {
+      this.drawPortraitKomadai(ctx, scale, 'sente', draggingPiece, viewteban, selectedType);
+      this.drawPortraitKomadai(ctx, scale, 'gote', draggingPiece, viewteban, selectedType);
+      return;
+    }
     this.width = KOMADAI_WIDTH * scale;
     this.height = KOMADAI_HEIGHT * scale;
     this.drawKomadai(ctx, scale, 'sente', draggingPiece, viewteban);
@@ -72,6 +85,63 @@ export class KomadaiUI {
     for (let i = 0; i < (komadai[type] - drag); i++) {
       ctx.drawImage(img, (komadai[type] - i - 1) * padding, 0, pieceSize, pieceSize);
     }
+  }
+
+  getPortraitRect(mine) {
+    const width = KOMADAI_WIDTH * this.portraitScale;
+    const height = KOMADAI_HEIGHT * this.portraitScale;
+    const boardHalf = BOARD_SIZE * CELL_SIZE / 2;
+    return {
+      x: mine ? boardHalf - width : -boardHalf,
+      y: mine ? boardHalf + KOMADAI_PORTRAIT_GAP : -boardHalf - KOMADAI_PORTRAIT_GAP - height,
+      width: width,
+      height: height
+    };
+  }
+
+  // 自分側の駒台で pos にある駒の種類を返す（並びはPC版と同じ）
+  getPortraitPieceAt(pos, komadai) {
+    const rect = this.getPortraitRect(true);
+    if (pos.x < rect.x || pos.x > rect.x + rect.width || pos.y < rect.y || pos.y > rect.y + rect.height) return null;
+    const padding = CELL_SIZE * KOMADAI_OFFSET_RATIO;
+    const localX = (pos.x - rect.x) / this.portraitScale - padding;
+    const localY = (pos.y - rect.y) / this.portraitScale - padding;
+    const row = Math.min(this.types.length - 1, Math.max(0, Math.floor(localY / CELL_SIZE)));
+    // 歩は1段目に横へ重ねて並ぶので、1段目ならどこを触っても歩
+    const col = row === 0 ? 0 : Math.min(2, Math.max(0, Math.floor(localX / CELL_SIZE)));
+    const type = this.types[row][col];
+    if (!type || komadai[type] <= 0) return null;
+    return type;
+  }
+
+  drawPortraitKomadai(ctx, scale, teban, draggingPiece, viewteban, selectedType) {
+    const myteban = viewteban === -1 ? 'gote' : 'sente';
+    const mine = teban === myteban;
+    const rect = this.getPortraitRect(mine);
+    const s = scale * this.portraitScale;
+    const width = KOMADAI_WIDTH * s;
+    const height = KOMADAI_HEIGHT * s;
+    ctx.save();
+    // 駒台の中心で回転させ、相手の駒台はPC版と同じく逆さまに表示する
+    ctx.translate((rect.x + rect.width / 2) * scale, (rect.y + rect.height / 2) * scale);
+    if (!mine) ctx.rotate(Math.PI);
+    const x = -width / 2;
+    const y = -height / 2;
+    ctx.fillStyle = BOARD_COLOR;
+    ctx.strokeStyle = LINE_COLOR;
+    ctx.fillRect(x, y, width, height);
+    ctx.strokeRect(x, y, width, height);
+    if (mine && selectedType) {
+      // タップで選択中の持ち駒のマスを強調
+      const padding = CELL_SIZE * KOMADAI_OFFSET_RATIO * s;
+      this.types.forEach((row, i) => row.forEach((type, j) => {
+        if (type !== selectedType) return;
+        ctx.fillStyle = MOUSE_HIGHLIGHT_COLOR;
+        ctx.fillRect(x + padding + j * CELL_SIZE * s, y + padding + i * CELL_SIZE * s, CELL_SIZE * s * 0.8, CELL_SIZE * s * 0.8);
+      }));
+    }
+    this.drawKomadaiPieces(x, y, s, this.board.komadaiPieces[teban], draggingPiece, teban, myteban);
+    ctx.restore();
   }
 
   onMouseDown(pos) {

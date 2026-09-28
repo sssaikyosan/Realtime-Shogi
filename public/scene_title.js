@@ -1,9 +1,9 @@
 //タイトルシーン要素
 
 import { createPlayScene } from "./scene_game.js";
-import { serverStatus, title_img, audioManager, setPlayerName, playerName, socket, selectedCharacterName, player_id, setScene, characterFiles, setSelectedCharacterName, connectToServer, strings, playerStatus, setStatus, setStrings, setSceneType, scene } from "./main.js";
+import { serverStatus, title_img, audioManager, setPlayerName, playerName, socket, selectedCharacterName, player_id, setScene, characterFiles, setSelectedCharacterName, connectToServer, strings, playerStatus, setStatus, setStrings, setSceneType, scene, isTouchDevice, PORTRAIT_NAME_INPUT_Y, PORTRAIT_ROOM_INPUT } from "./main.js";
 import { Scene } from "./scene.js";
-import { OverlayUI } from "./ui.js";
+import { OverlayUI, rememberLayout, restoreLayout } from "./ui.js";
 import { BackgroundImageUI } from "./ui_background.js";
 import { CharacterImageUI } from "./ui_character.js";
 import { LoadingUI } from "./ui_loading.js";
@@ -415,7 +415,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
         color: '#3241c9',
         textSize: 0.026,
         textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => { winConditionOverlay.visible = false; }
+        onClick: () => showHelp(null)
     });
 
     const pieceHelpOverlay = new OverlayUI({
@@ -445,7 +445,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
         color: '#3241c9',
         textSize: 0.026,
         textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => { pieceHelpOverlay.visible = false; }
+        onClick: () => showHelp(null)
     });
 
 
@@ -467,7 +467,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
     });
 
     const ctrlText = new TextUI({
-        text: () => `${strings['manual-text']}`,
+        text: () => `${isTouchDevice ? strings['manual-text-touch'] : strings['manual-text']}`,
         x: -0.15,
         y: -0.06,
         size: 0.025,
@@ -484,7 +484,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
         color: '#3241c9',
         textSize: 0.026,
         textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => { ctrlOverlay.visible = false; }
+        onClick: () => showHelp(null)
     });
 
     const pieceListButton = new ButtonUI({
@@ -496,11 +496,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
         color: '#3241c9',
         textSize: 0.026,
         textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => {
-            pieceHelpOverlay.visible = true;
-            ctrlOverlay.visible = false;
-            winConditionOverlay.visible = false;
-        }
+        onClick: () => showHelp(pieceHelpOverlay)
     });
 
     const ctrlButton = new ButtonUI({
@@ -512,11 +508,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
         color: '#3241c9',
         textSize: 0.026,
         textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => {
-            pieceHelpOverlay.visible = false;
-            ctrlOverlay.visible = true;
-            winConditionOverlay.visible = false;
-        }
+        onClick: () => showHelp(ctrlOverlay)
     });
 
     const winConditionButton = new ButtonUI({
@@ -528,11 +520,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
         color: '#3241c9',
         textSize: 0.026,
         textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => {
-            pieceHelpOverlay.visible = false;
-            ctrlOverlay.visible = false;
-            winConditionOverlay.visible = true;
-        }
+        onClick: () => showHelp(winConditionOverlay)
     });
 
     pieceHelpOverlay.add(pieceListButton);
@@ -558,6 +546,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
     winConditionOverlay.add(winConditionText);
     winConditionOverlay.add(closeWinConditionButton);
 
+    const pieceHelpUIs = [];
     let typeX = 0;
     for (const type of KOMADAI_TYPES) {
         const pieceHelp = new PieceHelpUI({
@@ -569,6 +558,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
         });
         typeX += 0.08;
         pieceHelpOverlay.add(pieceHelp);
+        pieceHelpUIs.push({ ui: pieceHelp, col: pieceHelpUIs.length % KOMADAI_TYPES.length, row: 0 });
     }
     typeX = 0;
     for (const type of PROMOTE_TYPES) {
@@ -582,8 +572,21 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
             });
 
             pieceHelpOverlay.add(pieceHelp);
+            pieceHelpUIs.push({ ui: pieceHelp, col: PROMOTE_TYPES.indexOf(type), row: 1 });
         }
         typeX += 0.08;
+    }
+
+    // ルール画面（駒一覧・操作方法・勝利条件）を切り替える。null で閉じる。
+    // 名前・部屋ID の入力欄（キャンバスより手前に出るHTML）とは重ならない位置に置く（縦画面は onLayout で調整）
+    function showHelp(target) {
+        for (const overlay of [pieceHelpOverlay, ctrlOverlay, winConditionOverlay]) {
+            overlay.visible = overlay === target;
+        }
+    }
+    // ルール画面の枠内のタップは、奥にあるボタン（キャラ変更など）に渡さない
+    for (const overlay of [pieceHelpOverlay, ctrlOverlay, winConditionOverlay]) {
+        overlay.onSearchMouseDown = () => true;
     }
 
     const ruleButton = new ButtonUI({
@@ -595,11 +598,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
         color: '#3241c9',
         textSize: 0.025,
         textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => {
-            ctrlOverlay.visible = false;
-            winConditionOverlay.visible = false;
-            pieceHelpOverlay.visible = true;
-        }
+        onClick: () => showHelp(pieceHelpOverlay)
     });
 
     titleScene.add(ruleButton);
@@ -619,10 +618,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
             const cantouchCharacter = () => {
                 titleCharacter.touchable = true;
             }
-            document.addEventListener('mouseup', () => {
-                cantouchCharacter();
-                document.removeEventListener('mouseUp', cantouchCharacter)
-            });
+            document.addEventListener('pointerup', cantouchCharacter, { once: true });
         }
     });
 
@@ -647,6 +643,74 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
     discordButton.style.display = "block";
     roomIdInput.style.display = "flex";
     nameInput.style.display = "flex";
+
+    const helpOverlays = [pieceHelpOverlay, ctrlOverlay, winConditionOverlay];
+    const helpNavButtons = [pieceListButton, ctrlButton, winConditionButton];
+    const helpTitles = [pieceListTitle, ctrlTitle, winConditionTitle];
+    const helpCloseButtons = [closePieceHelpButton, closeCtrlButton, closeWinConditionButton];
+
+    // 横画面の配置はコンストラクタで指定した値。縦画面から戻すときのために覚えておく
+    const landscapeUIs = [
+        title, announce, titleCharacter, playButton, makeRoomButton, joinRoomButton, cpuButton, langButton, ruleButton,
+        charaSelectButton, languageOverlay, cpuLevelOverlay, statusOverlay, cancelMatchButton, rankingOverlay,
+        matchingText, loading, ...helpOverlays, ...helpNavButtons, ...helpTitles, ...helpCloseButtons,
+        winConditionText, ctrlText, ...pieceHelpUIs.map(p => p.ui)
+    ];
+    rememberLayout(landscapeUIs);
+    // セリフ枠は表示中に幅が変わるので位置だけ覚える
+    rememberLayout([titleCharacter.voiceTextOverlay], ['x', 'y']);
+
+    titleScene.onLayout = (portrait, sc) => {
+        if (!portrait) {
+            // 横画面: コンストラクタで指定した配置に戻す
+            restoreLayout(landscapeUIs);
+            restoreLayout([titleCharacter.voiceTextOverlay]);
+            return;
+        }
+
+        // 縦画面: 上から ボタン列 → お知らせ → タイトル → キャラ(+ランキング) → 名前 → 各種ボタン
+        const top = -Math.max(0.889, Math.min(sc.halfHeight, 1.1));
+        // 縦長の端末では下側のまとまりを余った高さの分だけ下げる（HTML入力欄も main.js で同じだけ下げる）
+        const extra = -top - 0.889;
+        const dy = extra * 0.6;
+        sc.htmlOffsetY = dy;
+        const smallZoom = 1.7; // 0.12×0.05 のボタンを指で押せる大きさにする
+        langButton.place({ x: -0.5 + 0.02 + 0.06 * smallZoom, y: top + 0.07, zoom: smallZoom });
+        ruleButton.place({ x: -0.5 + 0.04 + 0.18 * smallZoom, y: top + 0.07, zoom: smallZoom });
+        languageOverlay.place({ x: langButton.x, y: top + 0.12 + 0.065 * smallZoom, zoom: smallZoom });
+        announce.place({ x: -0.47, y: top + 0.15, zoom: 1.4 });
+        title.place({ x: 0, y: top + 0.33, zoom: 0.7 });
+
+        titleCharacter.place({ x: -0.12, y: -0.1 + dy * 0.5, width: 0.76 + extra * 0.4, height: 0.76 + extra * 0.4 });
+        titleCharacter.voiceTextOverlay.place({ x: 0.12, y: 0.3 });
+        rankingOverlay.place({ x: 0.3, y: -0.2 + dy * 0.5, zoom: 1.25 });
+
+        statusOverlay.place({ x: -0.3, y: 0.33 + dy, zoom: 1.4 });
+        charaSelectButton.place({ x: 0.28, y: 0.33 + dy, zoom: 1.4 });
+        // 0.47 は名前入力欄（main.js の PORTRAIT_NAME_INPUT_Y）
+        const rowY = PORTRAIT_ROOM_INPUT.y + dy;
+        cpuButton.place({ x: -0.37, y: rowY, zoom: smallZoom });
+        joinRoomButton.place({ x: 0.11, y: rowY, zoom: smallZoom });
+        makeRoomButton.place({ x: 0.35, y: rowY, zoom: smallZoom });
+        cpuLevelOverlay.place({ x: 0, y: 0.0, zoom: smallZoom });
+        playButton.place({ x: 0, y: 0.76 + dy, zoom: 1.5 });
+        cancelMatchButton.place({ x: 0, y: 0.76 + dy, zoom: 1.5 });
+        matchingText.place({ x: -0.05, y: 0.58 + dy, zoom: 1.2 });
+        loading.place({ x: 0.3, y: 0.58 + dy, zoom: 1.2 });
+
+        // ヘルプ画面: ナビボタンを上に横並び、本文は大きめの文字で折り返す。
+        // 上端のボタン列と名前入力欄（HTMLでキャンバスより手前に出る）の間の中央に置き、入力欄と重ねない
+        const helpAreaTop = top + 0.13;
+        const helpAreaBottom = PORTRAIT_NAME_INPUT_Y - 0.035 - 0.02 + dy; // 名前入力欄の上端の少し上
+        helpOverlays.forEach(o => o.place({ y: (helpAreaTop + helpAreaBottom) / 2, height: 0.8 }));
+        helpNavButtons.forEach((b, i) => b.place({ x: (i - 1) * 0.31, y: -0.33, zoom: 1.8 }));
+        helpTitles.forEach(t => t.place({ y: -0.21, zoom: 1 }));
+        helpCloseButtons.forEach(b => b.place({ y: 0.33, zoom: 1.8 }));
+        winConditionText.place({ x: -0.45, y: -0.13, zoom: 1.5, maxWidth: 0.9 / 1.5 });
+        ctrlText.place({ x: -0.45, y: -0.13, zoom: 1.5, maxWidth: 0.9 / 1.5 });
+        const pieceZoom = 1.25;
+        pieceHelpUIs.forEach(({ ui, col, row }) => ui.place({ x: (col - 4) * 0.08 * pieceZoom, y: row === 0 ? -0.03 : 0.09, zoom: pieceZoom }));
+    };
     return titleScene;
 }
 
@@ -718,6 +782,29 @@ export function createCharacterSelectScene(titleCharacter) {
         }
     });
 
+    // 横画面の配置はコンストラクタで指定した値。縦画面から戻すときのために覚えておく（顔アイコンは作成時に追加）
+    const landscapeUIs = [titleCharacter, selectTitle, overlayUI, profileOverlayUI, characterProfileText, charaSubmitButton];
+    rememberLayout(landscapeUIs);
+    rememberLayout([titleCharacter.voiceTextOverlay], ['x', 'y']);
+    const faceUIs = [];
+    selectScene.onLayout = (portrait, sc) => {
+        if (!portrait) {
+            // 横画面: コンストラクタで指定した配置に戻す
+            restoreLayout(landscapeUIs);
+            restoreLayout([titleCharacter.voiceTextOverlay]);
+            return;
+        }
+        titleCharacter.place({ x: 0, y: -0.55, width: 0.62, height: 0.62 });
+        titleCharacter.voiceTextOverlay.place({ x: 0, y: 0.22 });
+        selectTitle.place({ x: 0, y: -0.17, zoom: 0.9 });
+        overlayUI.place({ x: 0, y: 0.09, height: 0.42 });
+        const faceZoom = 1.15;
+        faceUIs.forEach(({ ui, col }) => ui.place({ x: (col - 1) * 0.32, y: 0.03, zoom: faceZoom }));
+        charaSubmitButton.place({ x: 0, y: 0.4, zoom: 1.6 });
+        profileOverlayUI.place({ x: 0, y: 0.66, height: 0.3 });
+        characterProfileText.place({ x: -0.46, y: 0.53, zoom: 1.2, textBaseline: 'top', maxWidth: 0.92 / 1.2, reflow: true });
+    };
+
     selectScene.add(overlayUI);
     selectScene.add(profileOverlayUI);
     selectScene.add(characterProfileText);
@@ -787,6 +874,9 @@ export function createCharacterSelectScene(titleCharacter) {
         };
 
         selectScene.add(faceOverlayUI);
+        faceUIs.push({ ui: faceOverlayUI, col: col });
+        rememberLayout([faceOverlayUI]);
+        landscapeUIs.push(faceOverlayUI);
         faceOverlayUI.add(characterUI);
         faceOverlayUI.add(characterNameText);
     });
@@ -814,6 +904,9 @@ export function roomJoinFailed() {
         colors: ['#ffffff', '#00000000', '#00000000']
     });
     roomJoinFailedOverlay.add(roomJoinFailedtext);
+    if (scene && scene.portrait) {
+        roomJoinFailedOverlay.place({ x: 0, y: 0.66, zoom: 1.6 });
+    }
     setTimeout(() => {
         scene.add(roomJoinFailedOverlay);
     }, 100);

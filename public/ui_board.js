@@ -1,6 +1,6 @@
 import { KomadaiUI } from "./ui_komadai.js";
 import { UI } from "./ui.js";
-import { gameManager, pieceImages } from "./main.js";
+import { gameManager, pieceImages, lastPointerIsTouch } from "./main.js";
 import { CELL_SIZE, BOARD_SIZE, BOARD_COLOR, LINE_COLOR, LINEWIDTH, MOUSE_HIGHLIGHT_COLOR, KOMADAI_OFFSET_RATIO, KOMADAI_HEIGHT, MOVETIME, TIMER_RADIUS, TIMER_LINEWIDTH, TIMER_BORDER_WIDTH, TIMER_OFFSET_X, TIMER_OFFSET_Y, TIMER_BGCOLOR, TIMER_COLOR, ARROW_COLOR, MOVE_COLOR, PIECE_MOVES, UNPROMODED_TYPES, TIMER_RESERVE_COLOR } from "./const.js";
 import { sendPutPiece, sendMovePiece } from "./emit.js";
 
@@ -18,6 +18,10 @@ export class BoardUI extends UI {
   lastsend = null;
   touchable = true;
   rightClicked = false;
+  // 不成モード（タッチ端末の「自動成り」スイッチOFF。右ドラッグと同じく成らずに動かす）
+  noPromote = false;
+  // タップで選択中の駒（タッチ操作用。次にタップしたマスへ動かす）
+  selectedPiece = null;
 
   reserved = [];
 
@@ -38,6 +42,37 @@ export class BoardUI extends UI {
 
   init(teban) {
     this.teban = teban;
+  }
+
+  // 縦画面では駒台を盤の右下（自分）・左上（相手）に置く
+  setPortrait(portrait) {
+    this.komadai.layout = portrait ? 'portrait' : 'side';
+  }
+
+  cancelDrag() {
+    this.draggingPiece = null;
+    this.draggingPiecePos = null;
+    this.rightClicked = false;
+  }
+
+  // 選択中の駒がまだ動かせる状態か（相手に取られた等で無効になっていれば選択を外す）
+  getSelectedPiece() {
+    const piece = this.selectedPiece;
+    if (!piece) return null;
+    // 終局後は選択を外して、選択枠や移動先を表示しない
+    if (this.board.finished) {
+      this.selectedPiece = null;
+      return null;
+    }
+    let valid;
+    if (piece.x === -1) {
+      valid = this.board.komadaiPieces[this.teban === -1 ? 'gote' : 'sente'][piece.type] > 0;
+    } else {
+      const current = this.board.map[piece.x][piece.y];
+      valid = current && current.teban === this.teban && current.type === piece.type;
+    }
+    if (!valid) this.selectedPiece = null;
+    return valid ? piece : null;
   }
 
   renderSelf(ctx, scale) {
@@ -74,13 +109,18 @@ export class BoardUI extends UI {
     ctx.restore()
 
     ctx.save();
-    this.komadai.draw(ctx, scale, this.draggingPiece, this.teban);
+    const selected = this.draggingPiece ? null : this.getSelectedPiece();
+    this.komadai.draw(ctx, scale, this.draggingPiece, this.teban, selected && selected.x === -1 ? selected.type : null);
     ctx.restore();
 
     ctx.save();
 
-    if (this.draggingPiece) {
-      this.drawMove(ctx, scale);
+    const activePiece = this.draggingPiece ?? this.getSelectedPiece();
+    if (activePiece) {
+      this.drawMove(ctx, scale, activePiece);
+    }
+    if (!this.draggingPiece && activePiece && activePiece.x !== -1) {
+      this.drawSelected(ctx, scale, activePiece);
     }
 
     ctx.restore();
@@ -138,6 +178,9 @@ export class BoardUI extends UI {
   }
 
   getKomadaiPieceAt(pos) {
+    if (this.komadai.layout === 'portrait') {
+      return this.komadai.getPortraitPieceAt(pos, this.board.komadaiPieces[this.teban === -1 ? 'gote' : 'sente']);
+    }
     const komadaiX = BOARD_SIZE * CELL_SIZE / 2 + CELL_SIZE * KOMADAI_OFFSET_RATIO;
     const komadaiY = BOARD_SIZE * CELL_SIZE / 2 - KOMADAI_HEIGHT;
 
@@ -188,40 +231,62 @@ export class BoardUI extends UI {
     return false;
   }
 
-  onMouseDown(pos) {
+  // pos にある自分の駒（盤上 or 駒台）を掴む
+  pickPiece(pos) {
     const { x, y } = this.getBoardPosition(pos);
     if (x == -1 || y == -1) {
       const komadaiPiece = this.getKomadaiPieceAt(pos);
       if (komadaiPiece) {
-        this.draggingPiecePos = pos;
-        this.draggingPiece = { x: -1, y: -1, type: komadaiPiece, teban: this.teban, lastmoveptime: -5000 };
-        // this.board.komadaiPieces[this.board.teban === -1 ? 'gote' : 'sente'][komadaiPiece]--;
+        return { x: -1, y: -1, type: komadaiPiece, teban: this.teban, lastmoveptime: -5000 };
       }
     } else if (this.board.map[x][y]) {
       if (this.board.map[x][y].teban == this.teban) {
         const piece = this.board.map[x][y];
-        this.draggingPiece = { x: x, y: y, type: piece.type, teban: this.teban, lastmoveptime: piece.lastmoveptime };
-        this.draggingPiecePos = pos;
+        return { x: x, y: y, type: piece.type, teban: this.teban, lastmoveptime: piece.lastmoveptime };
       }
+    }
+    return null;
+  }
+
+  onMouseDown(pos) {
+    // タッチ操作ではドラッグせず、タップで駒を選択 → 移動先をタップで移動
+    if (lastPointerIsTouch) {
+      this.onTap(pos);
+      return;
+    }
+    this.selectedPiece = null;
+    const piece = this.pickPiece(pos);
+    if (piece) {
+      this.draggingPiece = piece;
+      this.draggingPiecePos = pos;
+    }
+  }
+
+  onTap(pos) {
+    if (this.board.finished) return; // 終局後は駒を選択・移動しない
+    const selected = this.getSelectedPiece();
+    const piece = this.pickPiece(pos);
+    if (piece) {
+      // 自分の駒（盤上 or 駒台）をタップ: 選択する。選択中の駒をもう一度タップしたら解除
+      const same = selected && piece.x === selected.x && piece.y === selected.y && piece.type === selected.type;
+      this.selectedPiece = same ? null : piece;
+      return;
+    }
+    this.selectedPiece = null;
+    if (!selected) return;
+    // 選択中の駒を、タップしたマス（空きマス or 相手の駒）へ動かす。盤外なら選択解除のみ
+    const target = this.getBoardPosition(pos);
+    if (target.x !== -1) {
+      this.sendMove(selected, target.x, target.y, !this.noPromote);
     }
   }
 
   onMouseDownRight(pos) {
     this.rightClicked = true;
-    const { x, y } = this.getBoardPosition(pos);
-    if (x == -1 || y == -1) {
-      const komadaiPiece = this.getKomadaiPieceAt(pos);
-      if (komadaiPiece) {
-        this.draggingPiecePos = pos;
-        this.draggingPiece = { x: -1, y: -1, type: komadaiPiece, teban: this.teban, lastmoveptime: -5000 };
-        // this.board.komadaiPieces[this.board.teban === -1 ? 'gote' : 'sente'][komadaiPiece]--;
-      }
-    } else if (this.board.map[x][y]) {
-      if (this.board.map[x][y].teban == this.teban) {
-        const piece = this.board.map[x][y];
-        this.draggingPiece = { x: x, y: y, type: piece.type, teban: this.teban, lastmoveptime: piece.lastmoveptime };
-        this.draggingPiecePos = pos;
-      }
+    const piece = this.pickPiece(pos);
+    if (piece) {
+      this.draggingPiece = piece;
+      this.draggingPiecePos = pos;
     }
   }
 
@@ -238,60 +303,65 @@ export class BoardUI extends UI {
   }
 
   onMouseUp(pos) {
-    if (!this.draggingPiece) return;
-    const { x, y } = this.getBoardPosition(pos);
-    if (this.draggingPiece.x === -1) {
-      sendPutPiece(x, y, this.draggingPiece.type);
-      if (gameManager.cpu === null) {
-        const time = this.board.serverstarttime + performance.now() - this.board.starttime;
-        const result = this.board.canPut(x, y, this.draggingPiece.type, gameManager.teban, time);
-        if (result.res) {
-          this.lastsend = { x: null, y: null, type: this.draggingPiece.type };
-        }
-      }
-    } else {
-      let nari = false;
-      if (this.board.canPromote(this.draggingPiece.y, y, gameManager.teban, this.draggingPiece.type)) {
-        nari = true;
-      } this.onMouseUpRight
-      sendMovePiece(this.draggingPiece.x, this.draggingPiece.y, x, y, nari);
-      if (gameManager.cpu === null) {
-        const time = this.board.serverstarttime + performance.now() - this.board.starttime;
-        const result = this.board.getCanMovePiece(this.draggingPiece.x, this.draggingPiece.y, x, y, nari, gameManager.teban, time);
-        if (result.res) {
-          this.lastsend = { x: this.draggingPiece.x, y: this.draggingPiece.y, type: null };
-        }
-      }
-    }
-    this.draggingPiece = null;
-    this.draggingPiecePos = null;
+    this.rightClicked = false;
+    this.finishDrag(pos, !this.noPromote);
   }
 
   onMouseUpRight(pos) {
     this.rightClicked = false;
+    this.finishDrag(pos, false);
+  }
+
+  finishDrag(pos, allowPromote) {
     if (!this.draggingPiece) return;
+    const piece = this.draggingPiece;
+    this.draggingPiece = null;
+    this.draggingPiecePos = null;
     const { x, y } = this.getBoardPosition(pos);
-    if (this.draggingPiece.x === -1) {
-      sendPutPiece(x, y, this.draggingPiece.type);
+    this.sendMove(piece, x, y, allowPromote);
+  }
+
+  sendMove(piece, x, y, allowPromote) {
+    if (piece.x === -1) {
+      if (x === -1) return; // 盤外で離した
+      sendPutPiece(x, y, piece.type);
       if (gameManager.cpu === null) {
         const time = this.board.serverstarttime + performance.now() - this.board.starttime;
-        const result = this.board.canPut(x, y, this.draggingPiece.type, gameManager.teban, time);
+        const result = this.board.canPut(x, y, piece.type, gameManager.teban, time);
         if (result.res) {
-          this.lastsend = { x: null, y: null, type: this.draggingPiece.type };
+          this.lastsend = { x: null, y: null, type: piece.type };
         }
       }
     } else {
-      sendMovePiece(this.draggingPiece.x, this.draggingPiece.y, x, y, false);
+      const nari = allowPromote && this.board.canPromote(piece.y, y, gameManager.teban, piece.type);
+      sendMovePiece(piece.x, piece.y, x, y, nari);
       if (gameManager.cpu === null) {
         const time = this.board.serverstarttime + performance.now() - this.board.starttime;
-        const result = this.board.getCanMovePiece(this.draggingPiece.x, this.draggingPiece.y, x, y, false, gameManager.teban, time);
+        const result = this.board.getCanMovePiece(piece.x, piece.y, x, y, nari, gameManager.teban, time);
         if (result.res) {
-          this.lastsend = { x: this.draggingPiece.x, y: this.draggingPiece.y, type: null };
+          this.lastsend = { x: piece.x, y: piece.y, type: null };
         }
       }
     }
-    this.draggingPiece = null;
-    this.draggingPiecePos = null;
+  }
+
+  // タップで選択中の駒の枠を強調表示
+  drawSelected(ctx, scale, piece) {
+    ctx.save();
+    if (this.teban === -1) {
+      ctx.rotate(Math.PI);
+    }
+    const cellSize = CELL_SIZE * scale;
+    const lineWidth = cellSize * 0.08;
+    ctx.strokeStyle = MOUSE_HIGHLIGHT_COLOR;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeRect(
+      piece.x * cellSize - cellSize * 9 / 2 + lineWidth / 2,
+      piece.y * cellSize - cellSize * 9 / 2 + lineWidth / 2,
+      cellSize - lineWidth,
+      cellSize - lineWidth
+    );
+    ctx.restore();
   }
 
 
@@ -392,8 +462,9 @@ export class BoardUI extends UI {
   }
 
 
-  drawMove(ctx, scale) {
+  drawMove(ctx, scale, activePiece) {
     ctx.fillStyle = MOVE_COLOR;
+    const noPromote = this.rightClicked || this.noPromote;
 
     function drawSquare(moveX, moveY, teban) {
       ctx.save();
@@ -410,24 +481,24 @@ export class BoardUI extends UI {
       return false;
     }
 
-    if (this.draggingPiece.x < 0) {
+    if (activePiece.x < 0) {
       for (let i = 0; i < BOARD_SIZE; i++) {
         for (let j = 0; j < BOARD_SIZE; j++) {
           if (this.board.map[i][j] === null) {
-            if (this.board.isNihu(i, j, this.draggingPiece.type, gameManager.teban)) continue;
-            if (this.board.isTopCell(i, j, this.draggingPiece.type, gameManager.teban)) continue;
+            if (this.board.isNihu(i, j, activePiece.type, gameManager.teban)) continue;
+            if (this.board.isTopCell(i, j, activePiece.type, gameManager.teban)) continue;
             drawSquare(i, j, this.teban);
           }
         }
       }
     } else {
-      for (const move of PIECE_MOVES[this.draggingPiece.type]) {
-        let moveX = this.draggingPiece.x + move.dx * this.teban;
-        let moveY = this.draggingPiece.y + move.dy * this.teban;
+      for (const move of PIECE_MOVES[activePiece.type]) {
+        let moveX = activePiece.x + move.dx * this.teban;
+        let moveY = activePiece.y + move.dy * this.teban;
         while (moveX >= 0 && moveX < BOARD_SIZE && moveY >= 0 && moveY < BOARD_SIZE) {
           const piece = this.board.map[moveX][moveY];
           if (piece && piece.teban === this.teban) break;
-          if (this.rightClicked && this.board.isTopCell(moveX, moveY, this.draggingPiece.type, gameManager.teban)) break;
+          if (noPromote && this.board.isTopCell(moveX, moveY, activePiece.type, gameManager.teban)) break;
           if (drawSquare(moveX, moveY, this.teban)) return true;
           if (!move.recursive) break;
           if (piece) break;

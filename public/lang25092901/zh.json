@@ -16,6 +16,8 @@
     "matching": "匹配中",
     "cancel": "取消",
     "name": "名字",
+    "auto-promote": "自动\n升级",
+    "manual-text-touch": "点击棋子选择 → 点击目标格移动\n（手中的棋子也用同样的操作打入）\n\n自动升级开关 - 关闭时移动不升级",
     "resign": "投降",
     "anonymous": "不留名",
     "change-character": "更换角色",

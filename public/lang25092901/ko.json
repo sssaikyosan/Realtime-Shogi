@@ -16,6 +16,8 @@
     "matching": "매칭 중",
     "cancel": "취소",
     "name": "이름",
+    "auto-promote": "자동\n승급",
+    "manual-text-touch": "말을 탭해서 선택 → 이동할 칸을 탭해서 이동\n(가진 말도 같은 방법으로 놓을 수 있습니다)\n\n자동 승급 스위치 - OFF인 동안 승급하지 않고 이동",
     "resign": "항복",
     "anonymous": "익명",
     "change-character": "캐릭터 변경",

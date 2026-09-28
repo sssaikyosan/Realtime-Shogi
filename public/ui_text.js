@@ -1,6 +1,30 @@
 import { UI } from "./ui.js";
 import { drawText, drawTextWithDoubleOutline, drawTextWithOutline } from "./utils.js";
 
+// 1行を maxPx に収まるよう分割する（英語は単語単位、日本語などは文字単位）
+export function wrapLine(ctx, line, maxPx) {
+  if (ctx.measureText(line).width <= maxPx) return [line];
+  const out = [];
+  let current = '';
+  for (const ch of line) {
+    const next = current + ch;
+    if (current && ctx.measureText(next).width > maxPx) {
+      const space = current.lastIndexOf(' ');
+      if (ch !== ' ' && space > 0) {
+        out.push(current.slice(0, space));
+        current = current.slice(space + 1) + ch;
+      } else {
+        out.push(current);
+        current = ch === ' ' ? '' : ch;
+      }
+    } else {
+      current = next;
+    }
+  }
+  if (current) out.push(current);
+  return out;
+}
+
 export class TextUI extends UI {
   constructor(params) {
     super(params);
@@ -15,6 +39,26 @@ export class TextUI extends UI {
     this.colors = params.colors;
     this.backgroundColor = params.backgroundColor;
     this.lineoffset = 0.1;
+    // 指定すると、この幅（ゲーム内座標）を超える行を折り返す
+    this.maxWidth = params.maxWidth ?? null;
+    // true のとき文中の改行を無視して maxWidth で折り返し直す
+    this.reflow = params.reflow ?? false;
+  }
+
+  getLines(ctx, size, scale) {
+    let text = this.text();
+    if (!this.maxWidth) return text.split('\n');
+    // 折り返しは文字ごとに幅を測るので重い。文字列・大きさが変わったときだけ計算し直す
+    const key = `${size}|${this.maxWidth * scale}|${this.reflow}|${text}`;
+    if (this.wrapCache && this.wrapCache.key === key) return this.wrapCache.lines;
+    if (this.reflow) text = text.replace(/\n/g, '');
+    ctx.save();
+    ctx.font = `${size}px Arial`;
+    const maxPx = this.maxWidth * scale;
+    const lines = text.split('\n').flatMap(line => wrapLine(ctx, line, maxPx));
+    ctx.restore();
+    this.wrapCache = { key, lines };
+    return lines;
   }
 
   renderSelf(ctx, scale) {
@@ -47,7 +91,7 @@ export class TextUI extends UI {
       ctx.fillRect(backgroundX, backgroundY, backgroundWidth, backgroundHeight);
     }
     const size = this.size * scale;
-    const lines = this.text().split('\n');
+    const lines = this.getLines(ctx, size, scale);
     let y = 0;
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];

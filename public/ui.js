@@ -18,6 +18,8 @@ export class UI {
     this.touchable = params.touchable ?? false;
     this.eventlist = {};
     this.visible = params.visible ?? true;
+    // 自分と子要素をまとめて拡大縮小する倍率（縦画面レイアウトで使用）
+    this.zoom = params.zoom ?? 1;
 
     // if (this.touchable) {
     //   canvas.addEventListener('mousemove', (e) => {
@@ -43,13 +45,14 @@ export class UI {
 
     // 自分の座標に描画位置をずらす 参照:https://developer.mozilla.org/ja/docs/Web/API/Canvas_API/Tutorial/Transformations
     ctx.translate(this.x * scale, this.y * scale);
+    const localScale = scale * this.zoom;
 
     // まず自分を描画
-    this.renderSelf(ctx, scale);
+    this.renderSelf(ctx, localScale);
 
     // 次に子供を描画
     for (const ui of this.childs) {
-      ui.draw(ctx, scale);
+      ui.draw(ctx, localScale);
     }
 
     // コンテキストの座標変換を復元
@@ -85,6 +88,12 @@ export class UI {
   onSerchTouch(pos) { }
   onTouch(pos) { }
 
+  // 位置・倍率・表示状態をまとめて設定する（レイアウト切り替え用）
+  place(params) {
+    Object.assign(this, params);
+    return this;
+  }
+
   resize(data) {
     this.scale = data.scale;
     // 子要素のリサイズ処理を呼び出す
@@ -103,14 +112,17 @@ export class UI {
     return false;
   }
 
+  // 戻り値: 押下（mousedown）をこのUIか子要素が処理した（ボタンが押された）とき true。
+  // Scene は true を受け取ると、奥にある他のUI（盤など）にはその押下を渡さない
   touchCheck(pos, str) {
-    if (!this.visible) return;
-    const cpos = { x: pos.x - this.x, y: pos.y - this.y };
+    if (!this.visible) return false;
+    const cpos = { x: (pos.x - this.x) / this.zoom, y: (pos.y - this.y) / this.zoom };
+    let consumed = false;
     if (this.isTouched(cpos)) {
       this.onSerchTouch();
       switch (str) {
         case 'mousedown':
-          this.onSearchMouseDown(cpos);
+          consumed = this.onSearchMouseDown(cpos) === true;
           break;
         case 'mousedown-right':
           this.onSearchMouseDownRight(cpos);
@@ -126,8 +138,10 @@ export class UI {
           break;
       }
     }
-    this.childs.forEach(ui => ui.touchCheck(cpos, str));
-    if (!this.touchable) return false;
+    for (const ui of this.childs) {
+      if (ui.touchCheck(cpos, str) === true) consumed = true;
+    }
+    if (!this.touchable) return consumed;
     if (this.isTouched(cpos)) {
       this.touched = true;
       this.onTouch(cpos);
@@ -154,12 +168,34 @@ export class UI {
         this.unTouch();
       }
     }
-    return false;
+    return consumed;
   }
   /**
    * @param {{x: number, y: number}} pos
    */
 
+}
+
+
+// 横画面の配置（コンストラクタで指定した値）を覚えておき、縦画面から戻すときに使う。
+// 同じUIを複数のシーンで使い回すことがあるので、最初に覚えた値（=コンストラクタの値）だけを保持する
+const LAYOUT_KEYS = ['x', 'y', 'zoom', 'width', 'height', 'position', 'textBaseline', 'maxWidth', 'reflow'];
+const initialLayouts = new WeakMap();
+
+export function rememberLayout(uis, keys = LAYOUT_KEYS) {
+  for (const ui of uis) {
+    if (!ui || initialLayouts.has(ui)) continue;
+    const layout = {};
+    for (const key of keys) layout[key] = ui[key];
+    initialLayouts.set(ui, layout);
+  }
+}
+
+export function restoreLayout(uis) {
+  for (const ui of uis) {
+    const layout = ui && initialLayouts.get(ui);
+    if (layout) Object.assign(ui, layout);
+  }
 }
 
 

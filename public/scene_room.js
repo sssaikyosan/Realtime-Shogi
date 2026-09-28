@@ -29,6 +29,7 @@ const maxPlayersInput = /** @type {HTMLInputElement} */ (document.getElementById
 const senteMoveTimeInput = /** @type {HTMLInputElement} */ (document.getElementById("senteMoveTimeInput"));
 const goteMoveTimeInput = /** @type {HTMLInputElement} */ (document.getElementById("goteMoveTimeInput"));
 const saveRoomSettingsButton = document.getElementById("saveRoomSettingsButton");
+const closeRoomSettingsButton = document.getElementById("closeRoomSettingsButton");
 
 const maxPlayersLabel = document.querySelector('label[for="maxPlayersInput"]');
 const senteMoveTimeLabel = document.querySelector('label[for="senteMoveTimeInput"]');
@@ -78,6 +79,7 @@ export function initRoomText() {
     goteMoveTimeLabel.textContent = `${strings['cooldown-second']}`;
 
     saveRoomSettingsButton.textContent = strings['apply'];
+    closeRoomSettingsButton.textContent = strings['close'];
 }
 
 // オーナー用ルーム設定変更ボタンにイベントリスナーを追加
@@ -92,6 +94,11 @@ openRoomSettingsButton.addEventListener("click", () => {
 
 
 // 設定保存ボタンにイベントリスナーを追加
+// 設定を変えずに閉じる
+closeRoomSettingsButton.addEventListener("click", () => {
+    roomSettingsOverlay.style.display = 'none';
+});
+
 saveRoomSettingsButton.addEventListener("click", () => {
     const settings = {
         maxplayers: parseInt(maxPlayersInput.value, 10),
@@ -314,9 +321,12 @@ export function createRoomScene(data) {
     copySuccessMessage.style.display = 'none';
     copySuccessMessage.style.opacity = '0';
     roomSettingsDisplay.style.display = 'flex'; // 部屋設定表示エリアを表示
+    // 縦画面ではルーム画面の要素を縦に積むレイアウトにする（index.html の body.room-active）
+    document.body.classList.add('room-active');
 
     // シーン破棄時のイベントリスナー削除とメッセージ非表示
     roomScene.destroy = () => {
+        document.body.classList.remove('room-active');
         if (copySuccessMessage) {
             copySuccessMessage.style.display = 'none';
             copySuccessMessage.style.opacity = '0';

@@ -39,6 +39,11 @@ export let characterProfiles = null;
 
 export let onClick = false;
 
+// タッチ操作できる端末か（スマホ・タブレット）。自動成りボタンなどタッチ専用UIの表示に使う
+export const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+// 最後に使われた入力がタッチかどうか（タップ選択→タップ移動の判定に使う）
+export let lastPointerIsTouch = false;
+
 // キャラクター画像フォルダ名のリスト (prof.jsonから抽出)
 export const characterFiles = [ // exportを追加
   "rei", "aoi", "akira"
@@ -104,6 +109,7 @@ export function setScene(s) {
     scene.destroy();
   }
   scene = s;
+  if (canvas) resizeHTML();
 }
 
 export function setPlayerName(name) {
@@ -313,13 +319,35 @@ async function init() {
   roop();
 }
 
+// 高解像度ディスプレイでぼやけないよう、描画バッファを devicePixelRatio 倍にする（負荷対策で最大2倍）
+let pixelRatio = 1;
+
 // キャンバスのリサイズ
 function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(window.innerWidth * pixelRatio);
+  canvas.height = Math.round(window.innerHeight * pixelRatio);
+  // CSS の 100vh はスマホのアドレスバー分ずれるので、表示サイズも実寸で指定する
+  canvas.style.width = `${window.innerWidth}px`;
+  canvas.style.height = `${window.innerHeight}px`;
+}
+
+function handleResize() {
+  resizeCanvas();
+  // シーンのリサイズ処理を呼び出す
+  if (scene && scene.resize) {
+    scene.resize({ scale: 1 }); // 仮のスケール値
+  }
+  resizeHTML();
 }
 
 function resizeHTML() {
+  if (!scene) return;
+  scene.resize();
+  if (scene.portrait) {
+    resizeHTMLPortrait();
+    return;
+  }
   let target = 0;
   let offsetX = 0;
   let offsetY = 0;
@@ -335,21 +363,111 @@ function resizeHTML() {
   roomIdInput.style = `display: ${roomIdInput.style.display}; font-size:${(Math.floor(target * 0.025)).toString()}px; padding: 6px; position: absolute; right: ${(target * 0.26 * 16 / 9 + offsetX).toString()}px; bottom: ${(target * 0.18 + offsetY).toString()}px; width:${(target * 0.12).toString()}px; height: ${(target * 0.03).toString()}px; transform: translate(100%, 0%);`;
 }
 
+// 縦画面用の入力欄配置（位置は scene_title.js の縦画面レイアウトに合わせる）
+export const PORTRAIT_NAME_INPUT_Y = 0.47;
+export const PORTRAIT_ROOM_INPUT = { x: -0.14, y: 0.59, width: 0.22 };
+
+function resizeHTMLPortrait() {
+  const s = scene.scale;
+  // iOS は 16px 未満の入力欄にフォーカスすると画面を拡大してしまうので 16px 以上にする
+  const nameFont = Math.max(16, Math.floor(s * 0.045));
+  const offsetY = scene.htmlOffsetY ?? 0;
+  const namePos = scene.toScreen(0, PORTRAIT_NAME_INPUT_Y + offsetY);
+  nameInput.style = `display: ${nameInput.style.display}; font-size:${nameFont}px; padding: 6px; position: absolute; left: ${namePos.x}px; top: ${namePos.y}px; width:${s * 0.7}px; height: ${s * 0.07}px; box-sizing: border-box; transform: translate(-50%, -50%);`;
+
+  const roomFont = Math.max(16, Math.floor(s * 0.04));
+  const roomPos = scene.toScreen(PORTRAIT_ROOM_INPUT.x, PORTRAIT_ROOM_INPUT.y + offsetY);
+  roomIdInput.style = `display: ${roomIdInput.style.display}; font-size:${roomFont}px; padding: 4px; position: absolute; left: ${roomPos.x}px; top: ${roomPos.y}px; width:${s * PORTRAIT_ROOM_INPUT.width}px; height: ${s * 0.08}px; box-sizing: border-box; transform: translate(-50%, -50%);`;
+}
+
+// ポインターイベント（タッチ・ペン）を既存のマウス用イベント名に変換してシーンに渡す
+let activeTouchPointer = null;
+// 押下（mousedown）を指を離したときに通知するか。対局中は即応性のため触れた瞬間、
+// それ以外の画面ではボタンで音声・動画を再生できるよう指を離したとき（ブラウザがユーザー操作と
+// みなすのはタッチでは pointerup 以降のため）に通知する
+let pressOnRelease = false;
+
+function addTouchListeners() {
+  canvas.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse') return; // マウスは従来の mouse イベントで処理
+    // preventDefault で互換マウスイベント（mousedown等）の二重発火を防ぐ
+    event.preventDefault();
+    // preventDefault するとタップしても入力欄からフォーカスが外れず、キーボードが出たままになるので自分で外す
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+      active.blur();
+    }
+    // マルチタッチの2本目以降は無視。最初の指（isPrimary）は常に受け付けるので、
+    // 前のタッチの pointerup を取りこぼしても（アラート表示中など）操作できなくなることはない
+    if (!event.isPrimary) return;
+    activeTouchPointer = event.pointerId;
+    lastPointerIsTouch = true;
+    pressOnRelease = sceneType !== 'game';
+    try {
+      canvas.setPointerCapture(event.pointerId); // 指が画面外に出ても move/up を受け取る
+    } catch (e) {
+      // 合成イベントなどでキャプチャできない場合は無視
+    }
+    if (!scene) return;
+    // ホバー状態（押下位置のセルやボタン）を先に更新してから押下を通知する
+    scene.touchCheck(event, 'mousemove');
+    if (!pressOnRelease) {
+      scene.touchCheck(event, 'mousedown');
+    }
+  });
+
+  canvas.addEventListener('pointermove', (event) => {
+    if (event.pointerType === 'mouse' || event.pointerId !== activeTouchPointer) return;
+    event.preventDefault();
+    if (!scene) return;
+    scene.touchCheck(event, 'mousemove');
+  });
+
+  const endTouch = (event) => {
+    if (event.pointerType === 'mouse' || event.pointerId !== activeTouchPointer) return;
+    event.preventDefault();
+    activeTouchPointer = null;
+    if (!scene) return;
+    if (event.type === 'pointerup') {
+      if (pressOnRelease) {
+        scene.touchCheck(event, 'mousedown');
+      }
+      scene.touchCheck(event, 'mouseup');
+    } else if (gameManager && gameManager.boardUI) {
+      // タッチがキャンセルされた場合はドラッグ中の駒を元に戻す
+      gameManager.boardUI.cancelDrag();
+    }
+    scene.releaseHover();
+    if (gameManager && gameManager.boardUI) {
+      gameManager.boardUI.hoveredCell = null;
+    }
+  };
+  canvas.addEventListener('pointerup', endTouch);
+  canvas.addEventListener('pointercancel', endTouch);
+  // キャプチャが外れて pointerup が届かない場合も、押しっぱなしの状態を残さない
+  canvas.addEventListener('lostpointercapture', (event) => {
+    if (event.pointerId === activeTouchPointer) {
+      activeTouchPointer = null;
+    }
+  });
+}
+
 // イベントリスナーを追加
 function addEventListeners() {
 
   // ウィンドウサイズ変更時のリスナーを追加
-  window.addEventListener('resize', () => {
-    resizeCanvas();
-    // シーンのリサイズ処理を呼び出す
-    if (scene && scene.resize) {
-      scene.resize({ scale: 1 }); // 仮のスケール値
-    }
-    resizeHTML();
+  window.addEventListener('resize', handleResize);
+  // 端末の回転直後は innerWidth/innerHeight が更新されていないことがあるので少し待って再計算する
+  window.addEventListener('orientationchange', () => {
+    setTimeout(handleResize, 100);
+    setTimeout(handleResize, 500);
   });
+
+  addTouchListeners();
 
   canvas.addEventListener('mousedown', (event) => {
     if (!scene) return;
+    lastPointerIsTouch = false;
     if (event.button == 2) {
       scene.touchCheck(event, 'mousedown-right');
     } else {
@@ -698,6 +816,8 @@ function roop() {
   if (gameManager) {
     gameManager.update();
   }
+  // 以降の描画はCSSピクセル単位で行い、高解像度の拡大はここでまとめて適用する
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   scene.draw(ctx);
   requestAnimationFrame(roop);
 }

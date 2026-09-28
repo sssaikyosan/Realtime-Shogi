@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>リアルタイム将棋</title>
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <style>
@@ -55,6 +55,8 @@
 
     /* canvasを全画面表示 */
     #shogiCanvas {
+      /* タッチ操作でスクロール・ズームさせない（駒のドラッグに使う） */
+      touch-action: none;
       display: block;
       /* インライン要素の隙間をなくす */
       width: 100vw;
@@ -343,6 +345,207 @@
       align-self: center;
       /* 中央揃え */
     }
+
+    /* 適用・閉じるボタンを中央に横並び */
+    #roomSettingsButtons {
+      display: flex;
+      gap: 10px;
+      align-self: center;
+    }
+
+    #roomSettingsOverlay #closeRoomSettingsButton {
+      background-color: #555577;
+    }
+
+    /* ===== スマートフォン対応 ===== */
+    html,
+    body {
+      /* ダブルタップ拡大・引っ張り更新・長押しメニュー・タップ時の青いハイライトを無効化 */
+      touch-action: manipulation;
+      overscroll-behavior: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* 縦画面・小さい横画面で共通: HTMLボタンを小さくする */
+    @media (orientation: portrait), (max-height: 500px) {
+      #settingsButton {
+        top: 8px;
+        right: 8px;
+        padding: 8px 10px;
+        font-size: 14px;
+      }
+
+      .discord-button {
+        top: 8px;
+        right: 96px;
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+
+      #volumeOverlay {
+        top: 44px !important;
+      }
+
+      #displayRoomIdButton,
+      #copyIdButton {
+        width: auto !important;
+        height: 40px !important;
+        padding: 0 12px !important;
+        font-size: 18px !important;
+      }
+
+      #roomIdStr {
+        font-size: 28px !important;
+        white-space: nowrap;
+      }
+
+      .roomButton {
+        width: auto;
+        padding: 8px 14px;
+        font-size: 16px;
+      }
+
+      #playingText p {
+        font-size: 24px;
+      }
+
+      #roomSettingsDisplay {
+        top: 8px;
+        left: 8px;
+        transform: none;
+      }
+
+      #roomSettingsDisplay p,
+      #roomSettingsDisplay button,
+      #roomSettingsOverlay label,
+      #roomSettingsOverlay button {
+        font-size: 14px;
+      }
+
+      #senteOverlay,
+      #goteOverlay,
+      #spectatorsOverlay {
+        width: 200px !important;
+      }
+
+      #tebanOverlay p {
+        margin: 6px 0;
+        font-size: 14px;
+        word-break: break-all;
+      }
+
+      .whiteText {
+        font-size: 18px;
+      }
+
+      .blueButton {
+        font-size: 22px;
+      }
+
+      #resultOverlay,
+      #roomResultOverlay {
+        max-width: calc(100vw - 40px);
+      }
+    }
+
+    /* 縦画面: ルーム画面の要素を上から順に縦に積む。
+       人数が増えて一覧が伸びても部屋設定・退室と重ならず、入りきらなければスクロールする */
+    @media (orientation: portrait) {
+      body.room-active #roomui {
+        position: fixed;
+        top: 52px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 0 8px 16px;
+        box-sizing: border-box;
+        overflow-y: auto;
+      }
+
+      /* 各要素の絶対配置（インラインの top/left/transform）を解除して上から順に並べる */
+      body.room-active #roomui > .overlay:not(#roomSettingsOverlay),
+      body.room-active #roomActionRow > .overlay {
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        bottom: auto !important;
+        transform: none !important;
+        margin: 0 !important;
+        flex-shrink: 0;
+      }
+
+      /* 準備完了（またはキャンセル）とゲーム開始を横並びにする。
+         ボタンの有無やプレイ中表示で高さが変わらないよう、ボタン1段分（60px）の高さを常に確保する */
+      body.room-active #roomActionRow {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+        height: 60px;
+      }
+
+      body.room-active #playingText p {
+        margin: 0;
+      }
+
+      #roomIdOverlay {
+        flex-wrap: nowrap;
+        justify-content: center;
+        align-items: center;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      #copySuccessMessage {
+        top: 70px;
+        left: 50%;
+        transform: translate(-50%, 0);
+        white-space: nowrap;
+      }
+
+      #tebanOverlay {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0;
+        gap: 6px;
+      }
+
+      #senteOverlay,
+      #goteOverlay,
+      #spectatorsOverlay {
+        width: auto !important;
+        flex: 1 1 0;
+        min-width: 0;
+        margin: 0;
+        padding: 6px;
+      }
+
+      #tebanOverlay .roomButton {
+        width: 100%;
+        padding: 8px 4px;
+        font-size: 15px;
+        white-space: normal;
+      }
+
+      /* 余白があるときは部屋設定と退室を下端に寄せる（人数が多いときは一覧の下に続く） */
+      body.room-active #roomui > #roomSettingsDisplay.overlay {
+        margin-top: auto !important;
+      }
+
+      /* 部屋設定の変更画面は一覧の上に重ねて表示する */
+      #roomSettingsOverlay {
+        top: 20%;
+        margin: 0;
+        z-index: 20;
+      }
+    }
   </style>
 </head>
 
@@ -376,24 +579,29 @@
 
     <!-- コピー成功メッセージ -->
     <div id="copySuccessMessage">部屋IDをコピーしました！</div>
-    <div id="cancelOverlay" class="overlay"
-      style="position: absolute; top:150px; left:50%; display: none; transform: translate(-50%, 0%);">
-      <button id="cancelButton" class="roomButton" style="background-color: #37792e;">キャンセル</button>
-    </div>
 
-    <div id="playingText" class="overlay"
-      style="position: absolute; top:120px; left:50%; background-color: #00000000; display: none; transform: translate(-50%, 0%);">
-      <p style="color: #d43737; font-size: 36px;">プレイ中</p>
-    </div>
+    <!-- プレイ中表示と準備完了/キャンセル/ゲーム開始（横画面ではそれぞれ絶対配置、
+         縦画面ではこの行に横並び。行の高さは固定で、表示の有無で下の一覧が動かない） -->
+    <div id="roomActionRow">
+      <div id="playingText" class="overlay"
+        style="position: absolute; top:120px; left:50%; background-color: #00000000; display: none; transform: translate(-50%, 0%);">
+        <p style="color: #d43737; font-size: 36px;">プレイ中</p>
+      </div>
 
-    <div id="readyOverlay" class="overlay"
-      style="position: absolute; top:150px; left:50%; display: none; transform: translate(-50%, 0%);">
-      <button id="readyButton" class="roomButton" style="background-color: #c06109;">準備完了</button>
-    </div>
+      <div id="readyOverlay" class="overlay"
+        style="position: absolute; top:150px; left:50%; display: none; transform: translate(-50%, 0%);">
+        <button id="readyButton" class="roomButton" style="background-color: #c06109;">準備完了</button>
+      </div>
 
-    <div id="startOverlay" class="overlay"
-      style="position: absolute; top:150px; left:50%; display: none; transform: translate(60%, 0%);">
-      <button id="startRoomGameButton" class="roomButton" style="background-color: #d842bf;">ゲーム開始</button>
+      <div id="cancelOverlay" class="overlay"
+        style="position: absolute; top:150px; left:50%; display: none; transform: translate(-50%, 0%);">
+        <button id="cancelButton" class="roomButton" style="background-color: #37792e;">キャンセル</button>
+      </div>
+
+      <div id="startOverlay" class="overlay"
+        style="position: absolute; top:150px; left:50%; display: none; transform: translate(60%, 0%);">
+        <button id="startRoomGameButton" class="roomButton" style="background-color: #d842bf;">ゲーム開始</button>
+      </div>
     </div>
 
 
@@ -432,7 +640,10 @@
       <label for="goteMoveTimeInput">後手クールダウン (秒):</label>
       <input type="number" id="goteMoveTimeInput" min="0" max="30" value="5">
 
-      <button id="saveRoomSettingsButton">適用</button>
+      <div id="roomSettingsButtons">
+        <button id="saveRoomSettingsButton">適用</button>
+        <button id="closeRoomSettingsButton">閉じる</button>
+      </div>
     </div>
 
     <div id="leaveRoomOverlay" class="overlay"

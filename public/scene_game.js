@@ -1,12 +1,15 @@
 import { cancelOverlay, createRoomScene, leaveRoomOverlay, readyOverlay, roomIdOverlay, spectatorsOverlay, tebanOverlay } from "./scene_room.js";
-import { MOVETIME } from "./const.js";
-import { gameManager, battle_img, audioManager, selectedCharacterName, setScene, scene, setStatus, setupSocket, connectToServer, socket, disconnectFromServer, getTitleInfo, strings, setSceneType } from "./main.js";
+import { MOVETIME, BOARD_SIZE, CELL_SIZE, KOMADAI_WIDTH, KOMADAI_HEIGHT } from "./const.js";
+import { gameManager, battle_img, audioManager, selectedCharacterName, setScene, scene, setStatus, setupSocket, connectToServer, socket, disconnectFromServer, getTitleInfo, strings, setSceneType, isTouchDevice } from "./main.js";
 import { Scene } from "./scene.js";
-import { clearTitleHTML, createTitleScene } from "./scene_title.js";
+import { KOMADAI_PORTRAIT_GAP } from "./ui_komadai.js";
+import { clearTitleHTML, createTitleScene, settingsButton } from "./scene_title.js";
 import { BackgroundImageUI } from "./ui_background.js";
 import { CharacterInGameUI } from "./ui_character.js";
 import { TextUI } from "./ui_text.js";
+import { OverlayUI, rememberLayout, restoreLayout } from "./ui.js";
 import { ButtonUI } from "./ui_button.js";
+import { ToggleUI } from "./ui_toggle.js";
 
 export const winCon = document.getElementById("winCon");
 export const roomWinCon = document.getElementById("roomWinCon");
@@ -136,6 +139,10 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
     const backgroundImageUI = new BackgroundImageUI({ image: battle_img });
     playScene.add(backgroundImageUI);
 
+    // 縦画面で投了・音量設定ボタンを置く上端の帯（横画面では非表示）
+    const topBarUI = new OverlayUI({ x: 0, y: 0, width: 0, height: 0, color: '#000000aa', borderRadius: 0, visible: false });
+    playScene.add(topBarUI);
+
     audioManager.playBGM('battle'); // 対戦BGMを再生
     let teban = 0;
     if (roomteban === 'sente' || cpulevel !== null) teban = 1;
@@ -216,6 +223,8 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
     playScene.add(arryCharacterUI);
     playScene.add(enemyCharacterUI);
 
+    const arryNameUIs = [];
+    const enemyNameUIs = [];
     for (let i = 0; i < arryNames.length; i++) {
         let arryNamesUI = new TextUI({
             text: () => {
@@ -230,6 +239,7 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
             backgroundColor: '#000000cc'
         });
         playScene.add(arryNamesUI);
+        arryNameUIs.push(arryNamesUI);
     }
 
     for (let i = 0; i < enemyNames.length; i++) {
@@ -246,6 +256,7 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
             backgroundColor: '#000000cc'
         });
         playScene.add(enemyNamesUI);
+        enemyNameUIs.push(enemyNamesUI);
     }
 
     let playerRatingUI = null;
@@ -309,7 +320,153 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
     playScene.add(countDownText);
     playScene.add(timeText);
 
+    // タッチ端末では右ドラッグの代わりに「自動成り」の切り替えスイッチを出す（初期値ON、OFFの間は成らずに移動）
+    let autoPromoteToggle = null;
+    if (isTouchDevice) {
+        autoPromoteToggle = new ToggleUI({
+            x: -0.8,
+            y: -0.34,
+            width: 0.12,
+            height: 0.13,
+            label: () => strings['auto-promote'],
+            getValue: () => !gameManager.boardUI?.noPromote,
+            onToggle: () => {
+                gameManager.boardUI.noPromote = !gameManager.boardUI.noPromote;
+            }
+        });
+        // 盤より後に追加して先に判定させる（押したときは押下が盤に渡らない）
+        playScene.add(autoPromoteToggle);
+    }
+
+    // 横画面の配置はコンストラクタで指定した値。縦画面から戻すときのために覚えておく
+    const landscapeUIs = [
+        gameManager.boardUI, resignButton, autoPromoteToggle, arryCharacterUI, enemyCharacterUI,
+        ...arryNameUIs, ...enemyNameUIs, playerRatingUI, opponentRatingUI,
+        timeText, countDownText, endText, winText, loseText
+    ].filter(Boolean);
+    rememberLayout(landscapeUIs);
+
+    playScene.onLayout = (portrait, sc) => {
+        layoutPlayScene(portrait, sc, {
+            playScene, topBarUI, resignButton, autoPromoteToggle, arryNameUIs, enemyNameUIs, playerRatingUI, opponentRatingUI, landscapeUIs
+        });
+    };
+
     return playScene;
+}
+
+// 縦画面で盤を少し大きく表示する倍率
+const PORTRAIT_BOARD_ZOOM = 1.16;
+// 縦画面の自動成りスイッチの大きさと、駒台・画面下端からの間隔（ゲーム内座標）
+const AUTO_PROMOTE_WIDTH = 0.13;
+const AUTO_PROMOTE_HEIGHT = 0.19;
+const AUTO_PROMOTE_GAP = 0.06;
+// キャラ画像の端は透明なので、スイッチの列にこの幅まではキャラがかかってもよい
+const CHARA_OVERLAP_ALLOWANCE = 0.04;
+// 縦画面で空きがあるときに駒台を大きくする上限の倍率
+const PORTRAIT_KOMADAI_MAX_SCALE = 1.15;
+
+function layoutPlayScene(portrait, sc, ui) {
+    const boardUI = gameManager.boardUI;
+    boardUI.setPortrait(portrait);
+
+    // 横画面ではキャラが駒台と重なるので盤の下に、縦画面ではセリフが盤に隠れないよう盤の上に描く。
+    // 名前・レーティングはキャラに重ねて表示するので、常にキャラの直後に描く
+    const labelUIs = [...ui.arryNameUIs, ...ui.enemyNameUIs, ui.playerRatingUI, ui.opponentRatingUI].filter(Boolean);
+    for (const u of [arryCharacterUI, enemyCharacterUI, ...labelUIs]) ui.playScene.remove(u);
+    const boardIndex = ui.playScene.ui_lists.indexOf(boardUI);
+    const insertAt = portrait ? boardIndex + 1 : boardIndex;
+    ui.playScene.ui_lists.splice(insertAt, 0, arryCharacterUI, enemyCharacterUI, ...labelUIs);
+
+    if (!portrait) {
+        // 横画面: コンストラクタで指定した配置に戻す
+        restoreLayout(ui.landscapeUIs);
+        arryCharacterUI.resetVoiceLayout();
+        enemyCharacterUI.resetVoiceLayout();
+        ui.topBarUI.place({ visible: false });
+        return;
+    }
+
+    // 縦画面: 一番上に投了・音量設定ボタン用の帯を取り、その下の領域に盤・駒台・キャラを置く。
+    // 駒台（PC版と同じ並び）は盤の右下（自分）・左上（相手）、キャラは空いた側（自分は左下、相手は右上）
+    const screenTop = -sc.halfHeight;
+    // 帯の高さは音量設定ボタン（HTML）の下端に合わせる
+    const settingsBottomPx = settingsButton.getBoundingClientRect().bottom || 48;
+    const topBar = Math.min(0.3, (settingsBottomPx + 6) / sc.scale);
+    const contentTop = screenTop + topBar;
+    const contentBottom = sc.halfHeight;
+    const cy = (contentTop + contentBottom) / 2; // 帯の下の領域の中心
+    const half = Math.min((contentBottom - contentTop) / 2, 1.15); // 帯の下の領域の半分の高さ
+
+    const buttonZoom = 1.6;
+    const buttonWidth = 0.12 * buttonZoom;
+
+    // 上端の帯: 左に投了、中央に経過時間、右は音量設定ボタン（HTML）
+    ui.topBarUI.place({ x: 0, y: screenTop + topBar / 2, width: sc.halfWidth * 2 + 0.1, height: topBar, visible: true });
+    ui.resignButton.place({ x: -0.5 + 0.02 + buttonWidth / 2, y: screenTop + topBar / 2, zoom: buttonZoom });
+    timeText.place({ x: 0, y: screenTop + topBar / 2 - 0.032, zoom: 0.8 });
+
+    // 盤と駒台を帯の下の領域に収める。高さが足りなければ盤を少し小さくし、駒台は最大1割まで縮める。
+    // 高さに余裕があれば駒台を最大 PORTRAIT_KOMADAI_MAX_SCALE 倍まで大きくする
+    const boardHalf = BOARD_SIZE * CELL_SIZE / 2;
+    const komadaiAvail = half - 0.005; // 盤の中心から駒台の外端までに使える高さ
+    const zoom = Math.min(PORTRAIT_BOARD_ZOOM, komadaiAvail / (boardHalf + KOMADAI_PORTRAIT_GAP + KOMADAI_HEIGHT * 0.9));
+    boardUI.place({ x: 0, y: cy, zoom: zoom });
+    const komadaiRoom = komadaiAvail / zoom - boardHalf - KOMADAI_PORTRAIT_GAP;
+    const komadaiScale = Math.min(PORTRAIT_KOMADAI_MAX_SCALE, komadaiRoom / KOMADAI_HEIGHT);
+    boardUI.komadai.portraitScale = komadaiScale;
+    const boardEdge = boardHalf * zoom + 0.01; // 盤の上下の端（領域の中心から）
+    const area = half - boardEdge; // 盤の上下それぞれの空き領域の高さ
+    // 駒台の内側（盤の中心寄り）の端。自分の駒台は盤の右下、相手の駒台は盤の左上（点対称）
+    const komadaiInner = (boardHalf - KOMADAI_WIDTH * komadaiScale) * zoom;
+
+    // キャラの大きさ: 縦は空き領域、横は駒台（と、その左に置く自動成りスイッチ）にかからない範囲
+    const buttonColumn = ui.autoPromoteToggle ? AUTO_PROMOTE_WIDTH + AUTO_PROMOTE_GAP + 0.01 - CHARA_OVERLAP_ALLOWANCE : 0;
+    const maxCharaWidth = komadaiInner + 0.5 - 0.02 - buttonColumn;
+    const charaSize = Math.max(0.2, Math.min(area - 0.01, maxCharaWidth));
+    const textZoom = 1.5;
+    const lineHeight = 0.025 * textZoom * 1.4;
+
+    // 相手（上）: キャラは右上で盤の上端に寄せ、名前はキャラの下部（盤側）に右寄せ・下ぞろえで重ねる。
+    // セリフは名前と重ならないようキャラの上部に出す
+    const enemyCharaX = 0.5 - charaSize / 2 - 0.01;
+    enemyCharacterUI.place({ x: enemyCharaX, y: cy - boardEdge - charaSize / 2, width: charaSize, height: charaSize });
+    enemyCharacterUI.setVoiceLayout({ x: -enemyCharaX, y: -charaSize / 2 + 0.06, size: 0.035, maxWidth: 0.95 });
+    let y = cy - boardEdge - 0.01;
+    if (ui.opponentRatingUI) {
+        ui.opponentRatingUI.place({ x: 0.49, y: y, zoom: textZoom, position: 'right', textBaseline: 'bottom' });
+        y -= lineHeight;
+    }
+    for (let i = ui.enemyNameUIs.length - 1; i >= 0; i--) {
+        ui.enemyNameUIs[i].place({ x: 0.49, y: y, zoom: textZoom, position: 'right', textBaseline: 'bottom' });
+        y -= lineHeight;
+    }
+
+    // 自分（下）: キャラは左下で盤の下端に寄せ、名前はキャラの下部に左寄せで重ねる
+    const arryCharaX = -0.5 + charaSize / 2 + 0.01;
+    arryCharacterUI.place({ x: arryCharaX, y: cy + boardEdge + charaSize / 2, width: charaSize, height: charaSize });
+    arryCharacterUI.setVoiceLayout({ x: -arryCharaX, y: -charaSize / 2 + 0.06, size: 0.035, maxWidth: 0.95 });
+    y = cy + boardEdge + charaSize - 0.01;
+    if (ui.playerRatingUI) {
+        ui.playerRatingUI.place({ x: -0.49, y: y, zoom: textZoom, position: 'left', textBaseline: 'bottom' });
+        y -= lineHeight;
+    }
+    for (let i = ui.arryNameUIs.length - 1; i >= 0; i--) {
+        ui.arryNameUIs[i].place({ x: -0.49, y: y, zoom: textZoom, position: 'left', textBaseline: 'bottom' });
+        y -= lineHeight;
+    }
+
+    // 自動成りスイッチ: キャラと自分の駒台の間の下端（駒台・盤から離して誤タップを防ぐ）
+    ui.autoPromoteToggle?.place({
+        x: komadaiInner - AUTO_PROMOTE_GAP - AUTO_PROMOTE_WIDTH / 2,
+        y: cy + half - 0.02 - AUTO_PROMOTE_HEIGHT / 2,
+        zoom: 1,
+        width: AUTO_PROMOTE_WIDTH,
+        height: AUTO_PROMOTE_HEIGHT
+    });
+
+    countDownText.place({ y: cy + 0.18 });
+    for (const t of [endText, winText, loseText]) t.place({ y: cy - 0.2, zoom: 0.7 });
 }
 
 export async function backToTitle() {

@@ -67,11 +67,14 @@ export class ButtonUI extends UI {
         ctx.fill();
     }
 
+    // 押されたら true を返し、奥にある他のUIには押下を渡さない
     onSearchMouseDown(pos) {
         if (this.isTouched(pos) && this.onClick) {
             this.onClick();
             setOnclick(true);
+            return true;
         }
+        return false;
     }
 
     onTouch() {

@@ -1,4 +1,4 @@
-import { TextUI } from "./ui_text.js";
+import { TextUI, wrapLine } from "./ui_text.js";
 import { characterImages, audioManager, onClick, characterVideos, strings } from "./main.js";
 import { OverlayUI, UI } from "./ui.js";
 import { CHARACTER_FOLDER, NUM_QUOTES, OVERLAY_COLOR } from "./const.js";
@@ -197,6 +197,9 @@ export class CharacterImageUI extends UI {
   }
 }
 
+// 対局中のセリフ枠の標準（横画面）の位置・文字サイズ・最大幅
+const IN_GAME_VOICE_LAYOUT = { x: 0.0, y: 0.12, size: 0.018, maxWidth: 1.5 };
+
 export class CharacterInGameUI extends UI {
   image; // Imageオブジェクト
   videoElement = []; // Video要素
@@ -206,19 +209,21 @@ export class CharacterInGameUI extends UI {
   isRenderingVideo = false; // 動画を描画中かどうかのフラグ
   voiceTextOverlay;
   voiceText;
+  voiceMaxWidth = IN_GAME_VOICE_LAYOUT.maxWidth;
+  voiceQuote = "";
 
   constructor(params) {
     super(params);
     this.image = params.image;
     this.width = params.width;
     this.height = params.height;
-    this.textsize = 0.018;
+    this.textsize = IN_GAME_VOICE_LAYOUT.size;
     this.voiceTextOverlay = new OverlayUI({
       color: OVERLAY_COLOR,
       x: 0.0,
-      y: 0.12,
+      y: 0.0,
       width: 0,
-      height: 0.018 + 0.02
+      height: 0
     });
     this.voiceText = new TextUI({
       text: () => {
@@ -226,13 +231,19 @@ export class CharacterInGameUI extends UI {
       },
       x: 0.0,
       y: 0.0,
-      size: 0.018,
+      size: IN_GAME_VOICE_LAYOUT.size,
       colors: ["#ffffff", "#00000000", "#00000000"],
       position: 'center'
     });
     this.voiceTextOverlay.add(this.voiceText);
     this.add(this.voiceTextOverlay);
+    this.resetVoiceLayout();
     this.init();
+  }
+
+  // セリフ枠を標準（横画面）の配置に戻す
+  resetVoiceLayout() {
+    this.setVoiceLayout(IN_GAME_VOICE_LAYOUT);
   }
 
   init() {
@@ -355,35 +366,8 @@ export class CharacterInGameUI extends UI {
     // 参照で読み取ることで言語変更時に自動的に更新されるようにする
     const currentStrings = strings;
 
-    // テキストの長さを正しく取得して幅を設定
-    this.voiceText.text = () => {
-      const quotes = currentStrings["characters"][this.image][type];
-      return quotes[randomIndex] || "";
-    };
-
-    // 実際に描画されるテキストの長さを計算するために、一度テキストを更新してから取得
     const quoteText = currentStrings["characters"][this.image][type][randomIndex] || "";
-
-    // Canvasを使用して実際の文字幅を測定
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      // テキストスタイルを設定（UIと同じように）
-      ctx.font = `${this.textsize * 100}px Arial, sans-serif`; // 100倍のサイズで測定
-      ctx.textAlign = 'center';
-
-      // 実際のテキスト幅を取得
-      const textMetrics = ctx.measureText(quoteText);
-      const actualPixelWidth = textMetrics.width;
-
-      // Canvas全体に対する相対的な幅に変換（100倍して測定したので戻す）
-      const relativeWidth = (actualPixelWidth / 100) + 0.02; // 少し余白を追加
-
-      // 最小幅と最大幅の制限を設ける
-      const minWidth = 0.15; // 最小幅
-      const maxWidth = 1.5;  // 最大幅
-      this.voiceTextOverlay.width = Math.max(minWidth, Math.min(maxWidth, relativeWidth));
-    }
+    this.fitVoiceBubble(quoteText);
 
     // 既存のイベントリスナーが重複しないように一度削除してから追加
     const existingEndedListener = this.currentVideo._endedHandler;
@@ -394,6 +378,7 @@ export class CharacterInGameUI extends UI {
     this.currentVideo._endedHandler = () => {
       setTimeout(() => {
         if (this.currentVideo === null) {
+          this.voiceQuote = '';
           this.voiceText.text = () => { return `` };
           this.voiceTextOverlay.width = 0;
         }
@@ -402,5 +387,39 @@ export class CharacterInGameUI extends UI {
 
     this.currentVideo.addEventListener('ended', this.currentVideo._endedHandler);
   }
-}
 
+  // セリフ枠を文字列に合わせる。最大幅を超える場合は折り返し、行数に合わせて枠を高くする
+  fitVoiceBubble(quoteText) {
+    this.voiceQuote = quoteText;
+    const lineHeight = this.textsize * 1.1; // TextUI の行送り（size + size * lineoffset）
+    let lines = [quoteText];
+    let widest = 0;
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (ctx) {
+      // 100倍のサイズで測って、描画時と同じ位置で改行した行に分けておく
+      ctx.font = `${this.textsize * 100}px Arial`;
+      lines = wrapLine(ctx, quoteText, (this.voiceMaxWidth - 0.02) * 100);
+      widest = Math.max(...lines.map(line => ctx.measureText(line).width)) / 100;
+    }
+    this.voiceText.text = () => lines.join('\n');
+    this.voiceText.y = -(lines.length - 1) * lineHeight / 2;
+    this.voiceTextOverlay.width = Math.max(0.15, Math.min(this.voiceMaxWidth, widest + 0.02));
+    this.voiceTextOverlay.height = this.textsize + (lines.length - 1) * lineHeight + this.textsize * 10 / 9;
+  }
+
+  // セリフ枠の位置（キャラ中心からの相対座標）と文字サイズを変更する
+  setVoiceLayout({ x, y, size, maxWidth }) {
+    this.textsize = size;
+    this.voiceMaxWidth = maxWidth;
+    this.voiceText.size = size;
+    this.voiceTextOverlay.x = x;
+    this.voiceTextOverlay.y = y;
+    if (this.voiceQuote) {
+      // 表示中のセリフがあれば新しい大きさで折り返し直す
+      this.fitVoiceBubble(this.voiceQuote);
+    } else {
+      this.voiceText.y = 0;
+      this.voiceTextOverlay.height = size + size * 10 / 9;
+    }
+  }
+}
