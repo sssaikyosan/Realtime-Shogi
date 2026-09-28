@@ -32,8 +32,10 @@ export class GameManager {
         this.board.init(servertime, now, moveTime, pawnLimit4thRank);
         this.boardUI.init(teban);
 
+        // 前の対局のCPUが残っていれば止める（終局処理を通らずにタイトルへ戻った場合など）
+        this.stopCpu();
         if (cpulevel !== null) {
-            this.cpu = new CPU(this, cpulevel); // GameManager自身をCPUに渡す
+            this.cpu = new CPU(this, cpulevel, pawnLimit4thRank); // GameManager自身をCPUに渡す
             this.cpu.gameStart(servertime, now);
         }
     }
@@ -45,14 +47,18 @@ export class GameManager {
         this.board = board;
         this.boardUI = new BoardUI({ gameManager: this, board: board, x: 0.0, y: 0.0 })
         this.boardUI.init(0);
-        this.cpu = null;
+        this.stopCpu();
     }
 
     resetRoom() {
         this.roomId = null;
         this.teban = 0;
+        this.stopCpu();
+    }
+
+    stopCpu() {
         if (this.cpu) {
-            this.cpu.worker.terminate();
+            this.cpu.stop();
         }
         this.cpu = null;
     }
@@ -138,12 +144,13 @@ export class GameManager {
             const gameEnd = this.board.checkGameEnd(serverMove);
             if (gameEnd.player !== 0 && this.cpu !== null) {
                 endGame({ winPlayer: gameEnd.player, text: gameEnd.text });
-            } else {
+            } else if (this.cpu !== null) {
                 this.cpu.boardChanged(serverMove);
             }
         } else {
-            console.error("GameManager: CPUの手の適用に失敗しました。", serverMove);
-            // エラーハンドリング
+            // CPUが考えている間にプレイヤーの手で盤面が変わった場合などに起こる（異常ではない）
+            console.debug("GameManager: CPUの手は適用できませんでした。", serverMove);
+            if (this.cpu !== null) this.cpu.moveRejected(serverMove);
         }
     }
 

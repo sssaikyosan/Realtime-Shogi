@@ -201,6 +201,7 @@ class Board {
     finished = false;
 
     piecePoint = 0;
+    pawnfourline = false; // 特殊ルール「歩は自陣4段目までしか打てない」（部屋の設定。CPU戦はオフ）
 
     // 盤面の初期化
     init(servertime, time) {
@@ -260,11 +261,12 @@ class Board {
     }
 
     //指定したマスへの移動が合法手か判定
-    checkMove(xx, yy, teban, type, nari, nteban) {
+    //成りは移動元か移動先のどちらかが敵陣なら可（敵陣から出る動きも成れる。本体の board.js と同じ判定）
+    checkMove(y, xx, yy, teban, type, nari, nteban) {
         if (this.map[xx][yy] && this.map[xx][yy].teban === nteban) return false;
         if (nari) {
-            if (teban === 1 && yy > 2) return false;
-            if (teban === -1 && yy < 6) return false;
+            if (teban === 1 && yy > 2 && y > 2) return false;
+            if (teban === -1 && yy < 6 && y < 6) return false;
         } else {
             if (this.isTopCell(xx, yy, type, teban)) return false;
         }
@@ -283,7 +285,7 @@ class Board {
 
         for (const move of moves) {
             if (move.dx === dx && move.dy === dy * nteban) {
-                return this.checkMove(x + move.dx, y + move.dy * nteban, piece.teban, piece.type, nari, nteban);
+                return this.checkMove(y, x + move.dx, y + move.dy * nteban, piece.teban, piece.type, nari, nteban);
             }
 
             // 再帰的に動きを計算
@@ -292,7 +294,7 @@ class Board {
                 let currentY = y + move.dy * nteban;
                 while (currentX >= 0 && currentX < BOARD_SIZE && currentY >= 0 && currentY < BOARD_SIZE) {
                     if (this.map[currentX][currentY] && this.map[currentX][currentY].teban === nteban) break;
-                    if (currentX === nx && currentY === ny) return this.checkMove(currentX, currentY, piece.teban, piece.type, nari, nteban);
+                    if (currentX === nx && currentY === ny) return this.checkMove(y, currentX, currentY, piece.teban, piece.type, nari, nteban);
                     if (this.map[currentX][currentY] && this.map[currentX][currentY].teban !== nteban) break;
                     currentX += move.dx;
                     currentY += move.dy * nteban;
@@ -334,14 +336,14 @@ class Board {
         return false;
     }
 
-    //二歩判定
+    //二歩判定,特殊ルール判定（pawnfourline のとき歩は自陣4段目までしか打てない）
     isNihu(x, y, type, teban) {
         if (type === 'pawn') {
             for (let i = 0; i < BOARD_SIZE; i++) {
                 if (this.map[x][i] && this.map[x][i].type === 'pawn' && this.map[x][i].teban === teban) return true;
             }
-            if (teban === 1 && y < 5) return true;
-            if (teban === -1 && y > 3) return true;
+            if (this.pawnfourline && teban === 1 && y < 5) return true;
+            if (this.pawnfourline && teban === -1 && y > 3) return true;
         }
         return false;
     }
@@ -574,6 +576,49 @@ let playerMoves = [];
 let cpuKingPos = { x: 4, y: 0 };
 let playerKingPos = { x: 4, y: 8 };
 
+// ===== 盤面の同期 =====
+// メインスレッドで適用された手は ["move", move] で届く（CPU自身の手も適用後に返ってくる）。
+// 相手の手は知覚遅延（PERCEPTION_DELAY_MS）の後に認識するが、自分の指した手は即座に分かっているので遅らせない。
+// ただし盤面が崩れないよう、反映は届いた順に行う（先に届いた相手の手の反映待ちなら、その後に続けて反映）。
+const moveQueue = [];
+// 送ったがまだ盤面に反映されていない自分の手の数。反映されるまでは次の手を決めない
+// （古い盤面のまま考えると、動かしたばかりの駒をもう一度動かそうとして弾かれる）
+let pendingOwnMoves = 0;
+let pendingSince = 0;
+const PENDING_TIMEOUT_MS = 1500; // 返事が来ない場合の保険
+let comboTimer = null; // 連続2手プランの2手目の送信予約
+
+function postCpuMove(move) {
+    pendingOwnMoves++;
+    pendingSince = performance.now();
+    postMessage({ move: move });
+}
+
+//自分の手の反映待ちでなければ次の手を考えてよい
+function canDecide() {
+    if (pendingOwnMoves > 0 && performance.now() - pendingSince > PENDING_TIMEOUT_MS) pendingOwnMoves = 0;
+    return pendingOwnMoves === 0;
+}
+
+function applyMove(move) {
+    board.justMove(move);
+    if (move.x === cpuKingPos.x && move.y === cpuKingPos.y) {
+        cpuKingPos = { x: move.nx, y: move.ny };
+    } else if (move.x === playerKingPos.x && move.y === playerKingPos.y) {
+        playerKingPos = { x: move.nx, y: move.ny };
+    }
+    if (move.teban === -1 && pendingOwnMoves > 0) pendingOwnMoves--;
+}
+
+function flushMoveQueue() {
+    const now = performance.now();
+    while (moveQueue.length > 0 && moveQueue[0].readyAt <= now) {
+        applyMove(moveQueue.shift().move);
+    }
+    // タイマーがわずかに早く発火した場合の取りこぼし防止
+    if (moveQueue.length > 0) setTimeout(flushMoveQueue, Math.max(1, moveQueue[0].readyAt - now));
+}
+
 
 //(x,y)の駒が(nx,ny)へ動いたとき、移動先が敵の利きにあるか（移動元は空きマスとして扱う）
 function isDanger(currentBoard, x, y, nx, ny, teban) {
@@ -742,6 +787,7 @@ function copyBoard() {
     let boardcopy = new Board();
     boardcopy.serverstarttime = board.serverstarttime;
     boardcopy.starttime = board.starttime;
+    boardcopy.pawnfourline = board.pawnfourline;
     for (let i = 0; i < BOARD_SIZE; i++) {
         for (let j = 0; j < BOARD_SIZE; j++) {
             if (!board.map[i][j]) continue;
@@ -778,7 +824,7 @@ function normalAlgolysm(currentBoard, servertime) {
 
     for (const move of cpuLegalMoves) {
         if (move.nx === playerKingPos.x && move.ny === playerKingPos.y) {
-            postMessage({ move: move });
+            postCpuMove(move);
             return true;
         }
     }
@@ -883,7 +929,7 @@ function normalAlgolysm(currentBoard, servertime) {
     if (kingCollisionMoves.length > 0) {
         const randomIndex = Math.floor(Math.random() * kingCollisionMoves.length);
         const randomMove = kingCollisionMoves[randomIndex];
-        postMessage({ move: randomMove });
+        postCpuMove(randomMove);
         return true;
     }
 
@@ -898,7 +944,7 @@ function normalAlgolysm(currentBoard, servertime) {
     if (kingCollisionMovesIgnoreTime.length > 0) {
         const randomIndex = Math.floor(Math.random() * kingCollisionMovesIgnoreTime.length);
         const randomMove = kingCollisionMovesIgnoreTime[randomIndex];
-        postMessage({ move: randomMove });
+        postCpuMove(randomMove);
         return true;
     }
 
@@ -912,7 +958,7 @@ function normalAlgolysm(currentBoard, servertime) {
     if (kingEscapeMoves.length > 0) {
         const randomIndex = Math.floor(Math.random() * kingEscapeMoves.length);
         const randomMove = kingEscapeMoves[randomIndex];
-        postMessage({ move: randomMove });
+        postCpuMove(randomMove);
         return true;
     }
 
@@ -933,7 +979,7 @@ function normalAlgolysm(currentBoard, servertime) {
     if (collisionMovesKingfiltered.length > 0) {
         const randomIndex = Math.floor(Math.random() * collisionMovesKingfiltered.length);
         const randomMove = collisionMovesKingfiltered[randomIndex];
-        postMessage({ move: randomMove });
+        postCpuMove(randomMove);
         return true;
     }
 
@@ -947,7 +993,7 @@ function normalAlgolysm(currentBoard, servertime) {
     if (kingEscapeMovesIgnoreTime.length > 0) {
         const randomIndex = Math.floor(Math.random() * kingEscapeMovesIgnoreTime.length);
         const randomMove = kingEscapeMovesIgnoreTime[randomIndex];
-        postMessage({ move: randomMove });
+        postCpuMove(randomMove);
         return true;
     }
 
@@ -972,7 +1018,7 @@ function normalAlgolysm(currentBoard, servertime) {
     if (safetyCapMoves.length > 0) {
         const randomIndex = Math.floor(Math.random() * safetyCapMoves.length);
         const randomMove = safetyCapMoves[randomIndex];
-        postMessage({ move: randomMove });
+        postCpuMove(randomMove);
         return true;
     }
 
@@ -994,7 +1040,7 @@ function normalAlgolysm(currentBoard, servertime) {
     if (collisionMovesIgnoreTimeKingfiltered.length > 0) {
         const randomIndex = Math.floor(Math.random() * collisionMovesIgnoreTimeKingfiltered.length);
         const randomMove = collisionMovesIgnoreTimeKingfiltered[randomIndex];
-        postMessage({ move: randomMove });
+        postCpuMove(randomMove);
         return true;
     }
 
@@ -1008,7 +1054,7 @@ function normalAlgolysm(currentBoard, servertime) {
     if (escapeMovesRemovePawn.length > 0) {
         const randomIndex = Math.floor(Math.random() * escapeMovesRemovePawn.length);
         const randomMove = escapeMovesRemovePawn[randomIndex];
-        postMessage({ move: randomMove });
+        postCpuMove(randomMove);
         return true;
     }
 }
@@ -1102,7 +1148,7 @@ function randomMoveNoBigDanger(currentBoard, servertime) {
     if (toKingMoves.length > 0) {
         const randomIndex = Math.floor(Math.random() * toKingMoves.length);
         const randomMove = toKingMoves[randomIndex];
-        postMessage({ move: randomMove });
+        postCpuMove(randomMove);
         return true;
     }
 }
@@ -1516,7 +1562,10 @@ function findBestMove(servertime) {
 
             // CPU is gote, so lower board scores are better.
             // senteDouble=1: プレイヤーはCPUの応手を待たず連続2手で咎めてくる可能性を読む
-            const boardValue = alphaBeta(boardcopy, servertime, 1, depth, 1, -Infinity, curBestValue, idDeadline, 1);
+            // 枝刈りの上限を「パス+許容帯」までは広げる：上限で打ち切った手の値は下限値（実際はもっと悪い）に
+            // なるため、最善手が使えないときの代替手選び・連続手の安全確認に使う範囲の値は正確に求めておく
+            const rootBeta = Math.max(curBestValue, passValue + WAIT_TOLERANCE);
+            const boardValue = alphaBeta(boardcopy, servertime, 1, depth, 1, -Infinity, rootBeta, idDeadline, 1);
             boardcopy.undoMove();
             curValues.push({ move: move, value: boardValue });
             if (boardValue < curBestValue || !curBest) {
@@ -1532,12 +1581,15 @@ function findBestMove(servertime) {
         if (aborted || !curBest) {
             // 反復が中断しても、前回最善手を先頭に並べて深く再探索済みなので
             // 完了したルート手までの部分結果は有効（深い反復に使った時間を無駄にしない）
+            // 候補手の値もこの深さのものにそろえる（パス基準値と深さが違うと比較が崩れる）
             if (curBest && passComplete) {
                 bestAny = curBest;
                 bestAnyValue = curBestValue;
                 bestNonKing = curNonKing;
                 bestNonKingValue = curNonKingValue;
                 passValueFinal = passValue;
+                lastDepth = depth;
+                lastValues = curValues;
             }
             break;
         }
@@ -1666,21 +1718,25 @@ function setcpu(lev) {
 //どちらも事前に決めてある手なので、相手の「知覚＋判断＋入力」（500ms超）より速く着手できる。
 function startSearchCpu(reactiveInterval, searchInterval, searchDelayRand, comboDropDelay, comboMoveDelay) {
     setInterval(() => {
+        if (!canDecide()) return;
         const servertime = startTime + performance.now();
         normalAlgolysm(board, servertime);
     }, reactiveInterval);
     setInterval(() => {
         const rand = searchDelayRand * Math.random();
         setTimeout(() => {
+            if (!canDecide()) return;
             const servertime = startTime + performance.now();
             const best = findBestMove(servertime);
             if (best && best.bestMove !== null) {
-                postMessage({ move: best.bestMove });
+                postCpuMove(best.bestMove);
                 if (best.bestNext) {
                     const next = best.bestNext;
                     const delay = next.x === -1 ? comboDropDelay : comboMoveDelay;
-                    setTimeout(() => {
-                        postMessage({ move: next });
+                    // 2手目は事前に決めた手なので反映待ちでも送る（1手目が弾かれたら取り消す）
+                    comboTimer = setTimeout(() => {
+                        comboTimer = null;
+                        postCpuMove(next);
                     }, delay);
                 }
             } else if (best === null) {
@@ -1694,6 +1750,7 @@ function startSearchCpu(reactiveInterval, searchInterval, searchDelayRand, combo
 //レベル1：反応が遅く、読みなし（入門向け）
 function level1cpu() {
     setInterval(() => {
+        if (!canDecide()) return;
         const servertime = startTime + performance.now();
         if (!normalAlgolysm(board, servertime)) {
             randomMoveNoBigDanger(board, servertime);
@@ -1704,12 +1761,14 @@ function level1cpu() {
 //レベル2：反応は速いが読みなし
 function level2cpu() {
     setInterval(() => {
+        if (!canDecide()) return;
         const servertime = startTime + performance.now();
         normalAlgolysm(board, servertime);
     }, 400);
     setInterval(() => {
         const rand = 1000 * Math.random();
         setTimeout(() => {
+            if (!canDecide()) return;
             const servertime = startTime + performance.now();
             randomMoveNoBigDanger(board, servertime);
         }, rand);
@@ -1770,20 +1829,25 @@ onmessage = function (e) {
         board = new Board();
         startTime = data.servertime;
         board.init(data.servertime, performance.now());
+        board.pawnfourline = data.pawnLimit4thRank === true;
         setcpu(data.level);
     }
 
     if (e.data[0] === "move") {
         const move = e.data[1];
-        setTimeout(() => {
-            board.justMove(move);
-            if (move.x === cpuKingPos.x && move.y === cpuKingPos.y) {
-                cpuKingPos = { x: move.nx, y: move.ny };
-            } else if (move.x === playerKingPos.x && move.y === playerKingPos.y) {
-                playerKingPos = { x: move.nx, y: move.ny };
-            }
-        }, PERCEPTION_DELAY_MS);
+        const delay = move.teban === -1 ? 0 : PERCEPTION_DELAY_MS;
+        moveQueue.push({ move: move, readyAt: performance.now() + delay });
+        if (delay > 0) setTimeout(flushMoveQueue, delay);
+        else flushMoveQueue();
+    }
 
+    // CPUの手がメインスレッドで弾かれた（相手の手と競合した等）：反映待ちを解除し、連続手の2手目も取り消す
+    if (e.data[0] === "moveRejected") {
+        if (pendingOwnMoves > 0) pendingOwnMoves--;
+        if (comboTimer !== null) {
+            clearTimeout(comboTimer);
+            comboTimer = null;
+        }
     }
 };
 

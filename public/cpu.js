@@ -4,18 +4,30 @@ export class CPU {
     level;
     gameManager;
 
-    constructor(gameManager, level) {
+    pawnLimit4thRank;
+
+    constructor(gameManager, level, pawnLimit4thRank = false) {
         this.level = level
+        this.pawnLimit4thRank = pawnLimit4thRank;
         this.gameManager = gameManager;
         this.setWorker(); // コンストラクタでワーカーのイベントハンドラを設定
     }
 
     gameStart(servertime, now) {
-        this.worker.postMessage(["gameStart", { servertime: servertime, time: now, level: this.level }]);
+        this.worker.postMessage(["gameStart", { servertime: servertime, time: now, level: this.level, pawnLimit4thRank: this.pawnLimit4thRank }]);
     }
 
     boardChanged(move) {
         this.worker.postMessage(["move", move]);
+    }
+
+    // CPUの手が盤面に適用できなかったことをワーカーに伝える（反映待ちの解除）
+    moveRejected(move) {
+        this.worker.postMessage(["moveRejected", move]);
+    }
+
+    stop() {
+        this.worker.terminate();
     }
 
     setWorker() {
