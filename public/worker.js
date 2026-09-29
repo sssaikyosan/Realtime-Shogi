@@ -1747,24 +1747,26 @@ function startSearchCpu(reactiveInterval, searchInterval, searchDelayRand, combo
     }, searchInterval);
 }
 
-//レベル1：反応が遅く、読みなし（入門向け）
+//レベル1：反応がかなり遅く、読みなし（入門向け）
 function level1cpu() {
+    PERCEPTION_DELAY_MS = 600;
     setInterval(() => {
         if (!canDecide()) return;
         const servertime = startTime + performance.now();
         if (!normalAlgolysm(board, servertime)) {
             randomMoveNoBigDanger(board, servertime);
         }
-    }, 2000);
+    }, 3000);
 }
 
-//レベル2：反応は速いが読みなし
+//レベル2：反応はそこそこ、読みなし
 function level2cpu() {
+    PERCEPTION_DELAY_MS = 500;
     setInterval(() => {
         if (!canDecide()) return;
         const servertime = startTime + performance.now();
         normalAlgolysm(board, servertime);
-    }, 400);
+    }, 800);
     setInterval(() => {
         const rand = 1000 * Math.random();
         setTimeout(() => {
@@ -1772,7 +1774,7 @@ function level2cpu() {
             const servertime = startTime + performance.now();
             randomMoveNoBigDanger(board, servertime);
         }, rand);
-    }, 1000);
+    }, 1800);
 }
 
 // ===== 反応速度の設計 =====
@@ -1787,26 +1789,26 @@ function level2cpu() {
 // レベル差は「読みの深さ」と「速度（反応・思考サイクル・連続着手）」の両方でつける。
 // レベル5だけが人間上限の速度で動き、4以下は意図的に速度を落として突出させる。
 
-//レベル3：浅い読み（2手）＋ゆっくりした反応（約800ms）・遅いサイクル
+//レベル3：浅い読み（2手）＋遅い反応（約1200ms）・遅いサイクル
 function level3cpu() {
     SEARCH_MAX_DEPTH = 2;
     SEARCH_TIME_LIMIT_MS = 100;
     ROOT_MOVE_LIMIT = 16;
     SEARCH_MOVE_LIMIT = 12;
     SEARCH_DEEP_MOVE_LIMIT = 8;
-    PERCEPTION_DELAY_MS = 450;
-    startSearchCpu(350, 1300, 300, 400, 800);
+    PERCEPTION_DELAY_MS = 600;
+    startSearchCpu(600, 2000, 500, 600, 1100);
 }
 
-//レベル4：そこそこの読み（3手）＋やや遅い人間の反応（約550ms）
+//レベル4：そこそこの読み（3手）＋ゆっくりした人間の反応（約850ms）
 function level4cpu() {
     SEARCH_MAX_DEPTH = 3;
     SEARCH_TIME_LIMIT_MS = 150;
     ROOT_MOVE_LIMIT = 18;
     SEARCH_MOVE_LIMIT = 12;
     SEARCH_DEEP_MOVE_LIMIT = 8;
-    PERCEPTION_DELAY_MS = 350;
-    startSearchCpu(200, 900, 200, 300, 600);
+    PERCEPTION_DELAY_MS = 450;
+    startSearchCpu(400, 1400, 300, 450, 900);
 }
 
 //レベル5：深い読み（最大6手）＋速い人間相当の反応・速いサイクル
