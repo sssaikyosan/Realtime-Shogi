@@ -722,6 +722,16 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
     return titleScene;
 }
 
+// 今の言語のキャラ説明を縦画面の幅で折り返したときの最大行数。
+// 縦画面では文字の大きさも折り返し幅も画面幅に比例するので、行数は画面幅によらない（計測用の倍率は任意）
+function maxProfileLines(size, zoom, maxWidth) {
+    const ctx = document.createElement('canvas').getContext('2d');
+    const scale = 1000 * zoom;
+    return Math.max(...characterFiles.map(name => new TextUI({
+        text: () => strings['characters'][name]['profile'], size, maxWidth, reflow: true, colors: ['#ffffff']
+    }).getLines(ctx, size * scale, scale).length));
+}
+
 // キャラクター選択シーン
 export function createCharacterSelectScene(titleCharacter) {
     const playBGMOnce = () => {
@@ -802,15 +812,29 @@ export function createCharacterSelectScene(titleCharacter) {
             restoreLayout([titleCharacter.voiceTextOverlay]);
             return;
         }
-        titleCharacter.place({ x: 0, y: -0.55, width: 0.62, height: 0.62 });
-        titleCharacter.voiceTextOverlay.place({ x: 0, y: 0.22 });
-        selectTitle.place({ x: 0, y: -0.17, zoom: 0.9 });
-        overlayUI.place({ x: 0, y: 0.09, height: 0.42 });
+        // キャラは y=-0.55・大きさ 0.62 を基本にし、上端が画面上端のボタン列（Discord・音量設定）にかかる
+        // 縦の短い端末でだけ、かからない位置まで下げる。下げた分だけ下側のまとまり（見出し〜プロフィール）も下げる
+        const top = -sc.halfHeight;
+        const charaSize = 0.62;
+        const charaY = Math.max(-0.55, top + 0.13 + charaSize / 2);
+        const dy = charaY + 0.55;
+        titleCharacter.place({ x: 0, y: charaY, width: charaSize, height: charaSize });
+        titleCharacter.voiceTextOverlay.place({ x: 0, y: 0.22 + dy });
+        selectTitle.place({ x: 0, y: -0.17 + dy, zoom: 0.9 });
+        overlayUI.place({ x: 0, y: 0.09 + dy, height: 0.42 });
         const faceZoom = 1.15;
-        faceUIs.forEach(({ ui, col }) => ui.place({ x: (col - 1) * 0.32, y: 0.03, zoom: faceZoom }));
-        charaSubmitButton.place({ x: 0, y: 0.4, zoom: 1.6 });
-        profileOverlayUI.place({ x: 0, y: 0.66, height: 0.3 });
-        characterProfileText.place({ x: -0.46, y: 0.53, zoom: 1.2, textBaseline: 'top', maxWidth: 0.92 / 1.2, reflow: true });
+        faceUIs.forEach(({ ui, col }) => ui.place({ x: (col - 1) * 0.32, y: 0.03 + dy, zoom: faceZoom }));
+        charaSubmitButton.place({ x: 0, y: 0.4 + dy, zoom: 1.6 });
+        // プロフィール枠は、今の言語でいちばん長いキャラ説明が収まる高さにする（キャラを切り替えても枠の大きさは変えない）
+        const profileZoom = 1.2;
+        const profileMaxWidth = 0.92 / profileZoom;
+        const profileTop = 0.51 + dy;
+        const profilePadding = 0.022;
+        const lines = maxProfileLines(characterProfileText.size, profileZoom, profileMaxWidth);
+        const lineHeight = characterProfileText.size * profileZoom * (1 + characterProfileText.lineoffset);
+        const profileHeight = profilePadding * 2 + (lines - 1) * lineHeight + characterProfileText.size * profileZoom;
+        profileOverlayUI.place({ x: 0, y: profileTop + profileHeight / 2, height: profileHeight });
+        characterProfileText.place({ x: -0.46, y: profileTop + profilePadding, zoom: profileZoom, textBaseline: 'top', maxWidth: profileMaxWidth, reflow: true });
     };
 
     selectScene.add(overlayUI);
