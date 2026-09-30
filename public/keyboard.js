@@ -1,5 +1,5 @@
 import { sendPutPiece } from "./emit.js";
-import { gameManager } from "./main.js";
+import { gameManager, sceneType } from "./main.js";
 
 export class Keyboard {
   keys = {
@@ -23,7 +23,7 @@ export class Keyboard {
 
   onKeyDown(e) {
     const piecetype = this.keys[e.key];
-    if (piecetype) {
+    if (piecetype && sceneType === 'game') {
       const pos = gameManager.boardUI.hoveredCell;
       if (!pos) return false;
       if (!gameManager.board.canPutPlace(pos.x, pos.y, piecetype, gameManager.teban)) return false;

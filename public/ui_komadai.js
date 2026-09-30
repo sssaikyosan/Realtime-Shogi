@@ -12,10 +12,13 @@ export class KomadaiUI {
   layout = 'side';
   // 縦画面で駒台だけを縮小する倍率（画面の高さが足りないとき用）
   portraitScale = 1;
+  // 自分の駒台に持ち駒を打つキー（Space, Q など）を表示するか（リプレイでは出さない）
+  showKeys = true;
   constructor(params) {
     this.x = params.x;
     this.y = params.y;
     this.board = params.board;
+    this.owner = params.owner ?? null; // この駒台を持つ盤（BoardUI）
   }
   types = [
     ['pawn', null, null],
@@ -47,7 +50,7 @@ export class KomadaiUI {
     ctx.fillRect(x, y, this.width, this.height);
     ctx.strokeRect(x, y, this.width, this.height);
 
-    if (myteban === teban) this.drawKeyText(ctx, scale, x, y);
+    if (myteban === teban && this.showKeys) this.drawKeyText(ctx, scale, x, y);
     // const ptimeDiff = performance.now() - komadaipTime[teban];
     // this.drawKomadaiTimer(ctx, scale, ptimeDiff);
     this.drawKomadaiPieces(x, y, scale, this.board.komadaiPieces[teban], draggingPiece, teban, myteban);
@@ -79,7 +82,7 @@ export class KomadaiUI {
     let drag = 0;
     if (draggingPiece !== null && draggingPiece.x === -1 && draggingPiece.type === type && teban === myteban) {
       drag = 1;
-    } else if (gameManager.boardUI.lastsend !== null && gameManager.boardUI.lastsend.type === type && teban === myteban) {
+    } else if ((this.owner ?? gameManager.boardUI).lastsend?.type === type && teban === myteban) {
       drag = 1;
     };
     for (let i = 0; i < (komadai[type] - drag); i++) {

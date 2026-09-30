@@ -10,6 +10,7 @@ import { TextUI } from "./ui_text.js";
 import { OverlayUI, rememberLayout, restoreLayout } from "./ui.js";
 import { ButtonUI } from "./ui_button.js";
 import { ToggleUI } from "./ui_toggle.js";
+import { beginRecord, cancelRecord, finishRecord, isRecording } from "./match_history.js";
 
 export const winCon = document.getElementById("winCon");
 export const roomWinCon = document.getElementById("roomWinCon");
@@ -151,6 +152,24 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
     if (roomteban === 'gote') teban = -1;
 
     gameManager.setRoom(roomId, teban, servertime, moveTime, pawnLimit4thRank, cpulevel);
+    // 自分が指す対局（レート戦・部屋・CPU戦）は対戦履歴に記録する（観戦は記録しない）
+    if (teban !== 0) {
+        beginRecord({
+            roomType: cpulevel !== null ? 'cpu' : roomType,
+            cpuLevel: cpulevel !== null ? Number(cpulevel) : null,
+            myTeban: teban,
+            senteNames: senteName,
+            goteNames: goteName,
+            senteCharacter: senteCharacter,
+            goteCharacter: goteCharacter,
+            senteRating: validRating(senteRating),
+            goteRating: validRating(goteRating),
+            moveTime: { sente: moveTime.sente, gote: moveTime.gote },
+            pawnLimit4thRank: !!pawnLimit4thRank,
+        });
+    } else {
+        cancelRecord();
+    }
     // 終局処理を通らずに対局画面を離れた場合（接続切れでタイトルへ戻る等）もCPUを止める。
     // setScene は新しいシーンを作ってから古いシーンを破棄するので、次の対局のCPUは止めない
     const sceneCpu = gameManager.cpu;
@@ -491,6 +510,7 @@ export function endGame(data) {
     setRatingText(data, mywin);
     setResultText(mywin);
     characterWinMove(mywin, resultOverlay);
+    saveRecord(data, mywin);
 
     gameManager.resetRoom();
     gameManager.board.finished = true;
@@ -501,6 +521,7 @@ export function endRoomGame(data) {
     setWinCon(roomWinCon, data, mywin);
     setResultText(mywin);
     characterWinMove(mywin, roomResultOverlay, data.winPlayer);
+    saveRecord(data, mywin);
 
     gameManager.teban = 0;
     gameManager.board.finished = true;
@@ -515,8 +536,33 @@ export function connectionLost() {
     changeRating.textContent = '';
     setResultText(0);
     resultOverlay.style.display = "block";
+    saveRecord({ text: 'connection-lost' }, 0);
     gameManager.teban = 0;
     gameManager.board.finished = true;
+}
+
+// レートは未計測のとき -999999（対局開始時）や -99999（終局時）が入っている
+function validRating(rating) {
+    return typeof rating === 'number' && rating > -99999 ? rating : null;
+}
+
+// 終局した対局を対戦履歴（最近の対戦）に保存する
+function saveRecord(data, mywin) {
+    if (!isRecording()) return;
+    let ratingBefore = null;
+    let ratingAfter = null;
+    if (mywin !== 0 && gameManager.cpu === null) {
+        ratingBefore = validRating(mywin === 1 ? data.winRating : data.loseRating);
+        ratingAfter = validRating(mywin === 1 ? data.newWinRating : data.newLoseRating);
+    }
+    const reasons = { 'game-end': 'king', 'try': 'try', 'resign': 'resign', 'resig': 'resign', 'disconnected': 'disconnected', 'connection-lost': 'connection-lost' };
+    finishRecord({
+        result: mywin,
+        reason: reasons[data.text] ?? 'other',
+        ratingBefore: ratingBefore,
+        ratingAfter: ratingAfter,
+        duration: performance.now() - gameManager.board.starttime,
+    });
 }
 
 function setRatingText(data, mywin) {

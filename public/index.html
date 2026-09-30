@@ -159,6 +159,8 @@
 
     /* 音量設定UIのスタイル調整 */
     #volumeOverlay {
+      /* 対戦履歴の一覧・リプレイの表示より手前に出す */
+      z-index: 10;
       padding: 15px 15px;
       /* パディングを小さく */
       margin: 5px;
@@ -544,6 +546,408 @@
         top: 20%;
         margin: 0;
         z-index: 20;
+      }
+    }
+    /* ---- 対戦履歴（一覧） ---- */
+    #historyPanel {
+      position: absolute;
+      top: 70px;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(820px, calc(100vw - 24px));
+      box-sizing: border-box;
+      flex-direction: column;
+      background: rgba(24, 24, 32, 0.94);
+      border-radius: 12px;
+      color: #ffffff;
+      font-family: sans-serif;
+      overflow: hidden;
+      z-index: 5;
+    }
+
+    .hheader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px 4px;
+    }
+
+    .hheader-title {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .hcrumbs {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 16px;
+      font-size: 16px;
+    }
+
+    .hcrumb {
+      background: none;
+      border: none;
+      color: #8fb4ff;
+      font-size: 16px;
+      padding: 2px 4px;
+      text-decoration: underline;
+    }
+
+    .hcrumb-current {
+      padding: 2px 4px;
+      font-weight: bold;
+    }
+
+    .hcrumb-sep {
+      color: #888888;
+    }
+
+    .htoolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 16px 10px;
+      border-bottom: 1px solid #ffffff22;
+    }
+
+    .hnote {
+      font-size: 14px;
+      color: #bbbbbb;
+    }
+
+    .hlist {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+    }
+
+    .hrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid #ffffff14;
+      cursor: pointer;
+    }
+
+    .hrow:hover {
+      background: #ffffff0d;
+    }
+
+    .hrow * {
+      cursor: pointer;
+    }
+
+    .hrow-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .hrow-title {
+      font-size: 18px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .hrow-meta {
+      font-size: 13px;
+      color: #bbbbbb;
+      margin-top: 2px;
+    }
+
+    .hrow-saved {
+      font-size: 13px;
+      color: #9fc4ff;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .hfolder-icon {
+      font-size: 26px;
+      width: 48px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .hbadge {
+      width: 48px;
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 14px;
+      font-weight: bold;
+      padding: 6px 0;
+      border-radius: 6px;
+    }
+
+    .hbadge-win {
+      background: #c8453a;
+    }
+
+    .hbadge-lose {
+      background: #3a5fc8;
+    }
+
+    .hbadge-draw {
+      background: #666666;
+    }
+
+    .hempty {
+      padding: 24px;
+      text-align: center;
+      color: #999999;
+    }
+
+    .hbtn {
+      background: #3241c9;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 16px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .hbtn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .hbtn-sub {
+      background: #555566;
+    }
+
+    .hbtn-danger {
+      background: #b8332b;
+    }
+
+    .hbtn-play {
+      background: #df398c;
+    }
+
+    .hbtn-more {
+      background: #444455;
+      padding: 8px 12px;
+    }
+
+    .hmodal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    .hmodal {
+      width: min(420px, calc(100vw - 32px));
+      max-height: calc(100vh - 64px);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 18px;
+      background: #262633;
+      border-radius: 12px;
+      color: #ffffff;
+      font-family: sans-serif;
+    }
+
+    .hmodal-title {
+      font-size: 18px;
+      font-weight: bold;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .hmodal-message {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .hmodal-error {
+      font-size: 14px;
+      color: #ff8a80;
+      min-height: 1em;
+    }
+
+    .hmodal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .hmenu-item {
+      width: 100%;
+      text-align: left;
+      padding: 12px 14px;
+    }
+
+    .hinput {
+      font-size: 16px;
+      padding: 8px 10px;
+      border: none;
+      border-radius: 6px;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .hpicker {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hpicker-item {
+      background: #33334a;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 16px;
+      text-align: left;
+    }
+
+    .hpicker-item:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    /* ---- リプレイ ---- */
+    .replay-info {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: calc(100vw - 280px);
+      padding: 6px 14px;
+      background: rgba(20, 20, 28, 0.85);
+      border-radius: 10px;
+      color: #ffffff;
+      font-family: sans-serif;
+      text-align: center;
+      z-index: 5;
+    }
+
+    .replay-players {
+      font-size: 17px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 4px 10px;
+    }
+
+    .replay-vs {
+      color: #aaaaaa;
+    }
+
+    .replay-detail {
+      font-size: 13px;
+      color: #cccccc;
+      margin-top: 2px;
+    }
+
+    .replay-controls {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(760px, calc(100vw - 16px));
+      box-sizing: border-box;
+      padding: 8px 12px;
+      background: rgba(20, 20, 28, 0.85);
+      border-radius: 10px;
+      color: #ffffff;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 5;
+    }
+
+    .replay-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .replay-seek {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .replay-time {
+      font-size: 14px;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .replay-btn {
+      min-width: 44px;
+      padding: 6px 10px;
+    }
+
+    .replay-speed {
+      min-width: 56px;
+    }
+
+    .replay-back {
+      margin-left: auto;
+    }
+
+    /* 音量設定ボタンが小さくなる画面では一覧をその下から始める */
+    @media (orientation: portrait), (max-height: 500px) {
+      #historyPanel {
+        top: 48px;
+        bottom: 8px;
+      }
+    }
+
+    /* 横画面では再生操作を1行にまとめ、盤の高さを確保する */
+    @media (orientation: landscape) {
+      .replay-controls {
+        flex-direction: row;
+        align-items: center;
+        width: min(1100px, calc(100vw - 16px));
+      }
+
+      .replay-controls .replay-row:first-child {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
+    /* 縦画面では対局者表示を音量設定ボタンの下に置く */
+    @media (orientation: portrait) {
+      .replay-row {
+        gap: 6px;
+      }
+
+      .replay-btn {
+        min-width: 36px;
+        padding: 6px 8px;
+      }
+
+      .replay-speed {
+        min-width: 44px;
+      }
+
+      .replay-info {
+        top: 64px;
+        max-width: calc(100vw - 24px);
+        width: max-content;
       }
     }
   </style>

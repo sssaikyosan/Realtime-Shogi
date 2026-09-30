@@ -24,6 +24,8 @@ export class BoardUI extends UI {
   selectedPiece = null;
 
   reserved = [];
+  // 駒のクールダウン表示に使う時刻（リプレイでは再生位置の時刻に差し替える）
+  now = () => performance.now();
 
   constructor(params) {
     super(params);
@@ -33,7 +35,8 @@ export class BoardUI extends UI {
     let komadai = new KomadaiUI({
       x: this.x,
       y: this.y,
-      board: params.board
+      board: params.board,
+      owner: this
     });
     this.komadai = komadai;
     this.teban = params.teban;
@@ -131,7 +134,7 @@ export class BoardUI extends UI {
     }
 
     // マウスオーバー中のセルをハイライト
-    if (gameManager.teban !== 0 && this.hoveredCell) {
+    if (this.touchable && gameManager.teban !== 0 && this.hoveredCell) {
       ctx.fillStyle = MOUSE_HIGHLIGHT_COLOR;
       ctx.fillRect(
         this.hoveredCell.x * CELL_SIZE * scale + LINEWIDTH / 2 - CELL_SIZE * scale * 9 / 2,
@@ -371,7 +374,7 @@ export class BoardUI extends UI {
       ctx.drawImage(img, -CELL_SIZE * scale / 2, -CELL_SIZE * scale / 2, CELL_SIZE * scale, CELL_SIZE * scale);
     }
 
-    const timeDiff = performance.now() - piece.lastmoveptime;
+    const timeDiff = this.now() - piece.lastmoveptime;
     let tebanMoveTime = this.board.moveTime.sente;
     if (piece.teban === -1) tebanMoveTime = this.board.moveTime.gote;
     if (timeDiff < tebanMoveTime) {

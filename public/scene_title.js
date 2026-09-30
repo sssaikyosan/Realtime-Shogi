@@ -12,6 +12,7 @@ import { KOMADAI_TYPES, LANGUAGES, MOVETIME, PROMOTE_TYPES } from "./const.js";
 import { ImageUI } from "./ui_image.js";
 import { ButtonUI } from "./ui_button.js";
 import { PieceHelpUI } from "./piece_help.js";
+import { createHistoryScene } from "./scene_history.js";
 
 export const discordButton = document.getElementById("discordButton");
 
@@ -239,6 +240,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
         titleScene.remove(charaSelectButton);
         titleScene.remove(playButton);
         titleScene.remove(langButton);
+        titleScene.remove(historyButton);
         titleScene.add(matchingText);
         titleScene.add(loading);
         titleScene.add(cancelMatchButton);
@@ -611,6 +613,19 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
 
     titleScene.add(ruleButton);
 
+    const historyButton = new ButtonUI({
+        text: `${strings['history']}`,
+        x: 0.64,
+        y: 0.02,
+        height: 0.05,
+        width: 0.12,
+        color: '#3241c9',
+        textSize: 0.025,
+        textColors: ['#ffffffff', '#00000000', '#00000000'],
+        onClick: () => setScene(createHistoryScene())
+    });
+    titleScene.add(historyButton);
+
     const charaSelectButton = new ButtonUI({
         text: `${strings['change-character']}`,
         x: -0.58,
@@ -659,7 +674,7 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
 
     // 横画面の配置はコンストラクタで指定した値。縦画面から戻すときのために覚えておく
     const landscapeUIs = [
-        title, announce, titleCharacter, playButton, makeRoomButton, joinRoomButton, cpuButton, langButton, ruleButton,
+        title, announce, titleCharacter, playButton, makeRoomButton, joinRoomButton, cpuButton, langButton, ruleButton, historyButton,
         charaSelectButton, languageOverlay, cpuLevelOverlay, statusOverlay, cancelMatchButton, rankingOverlay,
         matchingText, loading, ...helpOverlays, ...helpNavButtons, ...helpTitles, ...helpCloseButtons,
         winConditionText, ctrlText, ...pieceHelpUIs.map(p => p.ui)
@@ -695,6 +710,8 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
 
         statusOverlay.place({ x: -0.3, y: 0.33 + dy, zoom: 1.4 });
         charaSelectButton.place({ x: 0.28, y: 0.33 + dy, zoom: 1.4 });
+        // 上端の列は Discord ボタン（HTML）で埋まるので、キャラ変更の上に置く
+        historyButton.place({ x: 0.28, y: 0.33 + dy - 0.1, zoom: 1.4 });
         // 0.47 は名前入力欄（main.js の PORTRAIT_NAME_INPUT_Y）
         const rowY = PORTRAIT_ROOM_INPUT.y + dy;
         cpuButton.place({ x: -0.37, y: rowY, zoom: smallZoom });

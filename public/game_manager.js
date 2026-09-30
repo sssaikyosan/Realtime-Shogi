@@ -5,6 +5,7 @@ import { Board } from './board.js';
 import { CPU } from './cpu.js'; // CPUクラスをインポート
 import { endGame } from './scene_game.js';
 import { MOVETIME } from './const.js';
+import { recordMove, cancelRecord } from './match_history.js';
 
 export class GameManager {
     roomId;
@@ -48,6 +49,7 @@ export class GameManager {
         this.boardUI = new BoardUI({ gameManager: this, board: board, x: 0.0, y: 0.0 })
         this.boardUI.init(0);
         this.stopCpu();
+        cancelRecord(); // 観戦は記録しない
     }
 
     resetRoom() {
@@ -68,6 +70,7 @@ export class GameManager {
         this.boardUI.lastsend = null;
         const result = this.board.movePieceLocal(move);
         if (result.res) {
+            this.recordAppliedMove(move, move.servertime);
             if (this.boardUI.draggingPiece) {
                 if (move.nx === this.boardUI.draggingPiece.x && move.ny === this.boardUI.draggingPiece.y) {
                     this.boardUI.draggingPiece = null;
@@ -97,9 +100,17 @@ export class GameManager {
             let tebanMoveTime = this.board.moveTime.sente;
             if (piece.teban === -1) tebanMoveTime = this.board.moveTime.gote;
             const servertime = piece.lastmovetime + tebanMoveTime;
+            const board = this.board;
+            const boardUI = this.boardUI;
             setTimeout(() => {
+                // 待っている間に終局した・次の対局に移った場合は指さない
+                if (this.board !== board || board.finished) {
+                    boardUI.removeSameReserved(move);
+                    return;
+                }
                 const reserveResult = this.board.movePieceLocal({ ...move, servertime });
                 if (reserveResult && reserveResult.res) {
+                    this.recordAppliedMove(move, servertime);
                     if (this.boardUI.draggingPiece) {
                         if (move.nx === this.boardUI.draggingPiece.x && move.ny === this.boardUI.draggingPiece.y) {
                             this.boardUI.draggingPiece = null;
@@ -133,6 +144,7 @@ export class GameManager {
         const serverMove = { ...move, servertime: now }
         const result = this.board.movePieceLocal(serverMove);
         if (result.res) {
+            this.recordAppliedMove(serverMove, now);
             audioManager.playSound("sound"); // 効果音
 
             if (this.boardUI.draggingPiece) {
@@ -154,6 +166,11 @@ export class GameManager {
         }
     }
 
+
+    // 盤に適用された手を対戦履歴に記録する（対局開始からの時間で持つ）
+    recordAppliedMove(move, servertime) {
+        recordMove(move, servertime - this.board.serverstarttime);
+    }
 
     update() {
         const time = performance.now();
