@@ -61,6 +61,8 @@ export function ioSetup() {
                     }
                     serverState.players[socket.id].requestMatch(data);
                     console.log(`Player ${playerInfo.player_id} is now matching.`);
+                    // 相手が待っていればすぐ組み合わせる（定期処理を待たない）
+                    serverState.matchMakingProcess();
                 } else {
                     console.error('Failed to add player to server state.');
                 }

@@ -38,6 +38,11 @@ app.use(express.json());
 
 const postgure = new Postgure();
 
+// マッチング待ち・対局中の人数（タイトル画面に表示する。プレイヤーは作らない）
+app.get('/api/status', (req, res) => {
+  res.json({ waiting: serverState.getWaitingCount(), playing: serverState.playingCount });
+});
+
 app.get('/api/health', (req, res) => {
   res.setHeader('Cache-Control', 'no-store'); // キャッシュ防止
   res.status(200).json({ status: "ok" });
@@ -178,6 +183,11 @@ server.listen(PORT, () => {
 
 
 ioSetup();
+
+serverState.updatePlayingCount();
+setInterval(() => {
+  serverState.updatePlayingCount();
+}, 10000);
 
 setInterval(() => {
   serverState.matchMakingProcess(); // マッチングプロセスを定期的に実行

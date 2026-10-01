@@ -26,6 +26,16 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'game_public', 'index.html'));
 });
 
+// 対局中の人数（マッチングサーバーがタイトル画面の表示用に問い合わせる）
+app.get('/status', (req, res) => {
+    let playing = 0;
+    for (const roomId in serverState.rooms) {
+        const room = serverState.rooms[roomId];
+        if (room.gameState === 'playing') playing += room.sente.length + room.gote.length;
+    }
+    res.json({ playing });
+});
+
 let server;
 // Socket.IO 接続ハンドラ内でプレイヤーを識別し、ルームに割り当てる処理が必要になる
 if (process.env.NODE_ENV === 'development') {

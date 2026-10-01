@@ -32,7 +32,7 @@ export class Player {
     }
 
     cancelMatch() {
-        if (this.state = "matching") {
+        if (this.state === "matching") {
             this.state = "waiting";
 
             // キューから削除

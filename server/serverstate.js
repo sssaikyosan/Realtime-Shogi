@@ -77,112 +77,58 @@ export class ServerState {
         return false;
     }
 
-    // マッチングスコアの計算（低いほど良いマッチ）
-    calculateMatchScore(elo1, elo2, plays1, plays2) {
-        const EloWeight = 10;      // Elo差の重み
-        const PlaysWeight = 50;    // 経験値差の重み（対数スケール）
-
-        const eloDiff = Math.abs(elo1 - elo2);
-        // 対数を使って経験値の差を計算。新規プレイヤー保護のために重要
-        const logPlays1 = Math.log(plays1 + 1); // +1はゼロ除算防止
-        const logPlays2 = Math.log(plays2 + 1);
-        const playsDiff = Math.abs(logPlays1 - logPlays2);
-
-        return (eloDiff * EloWeight) + (playsDiff * PlaysWeight);
+    // マッチング待ちの人数（同じプレイヤーが複数の接続で待っていても1人と数える）
+    getWaitingCount() {
+        const ids = new Set();
+        for (const entry of this.matchingQueue) {
+            const player = this.players[entry.id];
+            if (player) ids.add(player.player_id);
+        }
+        return ids.size;
     }
 
+    // 先に待っていた順に、別のプレイヤーどうしをすぐ組み合わせる（レート差では選ばない）
     matchMakingProcess() {
-        // ステップ0: 前処理
-        if (this.matchingQueue.length < 2) {
-            return;
-        }
-
-        const currentTime = Date.now();
-
-        // マッチング候補者をElo順にソート（重要：計算量削減）
-        const sortedPlayers = [...this.matchingQueue].sort((a, b) => {
-            return a.rating - b.rating;
-        });
-
-        // ペア成立済みプレイヤーを追跡
-        const matchedPlayers = new Set();
-        const matchedPairs = [];
-
-        let searchRange = 10; // 基本の検索範囲
-
-        // ステップ2: 各プレイヤーの最適な相手を探す（Greedy法）
-        for (let i = 0; i < sortedPlayers.length; i++) {
-            const playerA = sortedPlayers[i];
-            if (matchedPlayers.has(playerA.id)) continue;
-
-            let bestMatch = null;
-            let minScore = Infinity;
-
-            // 待ち時間に基づく動的パラメータ調整
-            const waitTime = currentTime - playerA.queueEntryTime;
-
-            let threshold = waitTime / 5 + 300;   // マッチングスコアの閾値
-            let playsWeight = 50;  // 経験値重み
-
-
-            // 近傍探索：Eloが近いプレイヤーのみを対象に
-            for (let j = Math.max(0, i - searchRange); j < Math.min(sortedPlayers.length, i + searchRange + 1); j++) {
-                if (i === j) continue;
-
-                const playerB = sortedPlayers[j];
-                if (matchedPlayers.has(playerB.id)) continue;
-
-                // マッチングスコアを計算（動的重みを使用）
-                const score = (Math.abs(this.players[playerA.id].rating - this.players[playerB.id].rating) * 10) +
-                    (Math.abs(Math.log(this.players[playerA.id].total_games + 1) - Math.log(this.players[playerB.id].total_games + 1)) * playsWeight);
-
-                if (score < minScore) {
-                    minScore = score;
-                    bestMatch = playerB;
-                }
-            }
-
-            // ステップ3: ペア成立条件チェック（動的閾値）
-            if (bestMatch && minScore <= threshold) {
-                matchedPairs.push({
-                    player1: playerA.id,
-                    player2: bestMatch.id,
-                    score: minScore
-                });
-                matchedPlayers.add(playerA.id);
-                matchedPlayers.add(bestMatch.id);
+        const queue = this.matchingQueue.filter(entry => this.players[entry.id]);
+        const matched = new Set();
+        const pairs = [];
+        for (let i = 0; i < queue.length; i++) {
+            const a = queue[i];
+            if (matched.has(a.id)) continue;
+            for (let j = i + 1; j < queue.length; j++) {
+                const b = queue[j];
+                if (matched.has(b.id)) continue;
+                // 同じプレイヤー（別のタブなど）どうしは組まない
+                if (this.players[a.id].player_id === this.players[b.id].player_id) continue;
+                pairs.push([a.id, b.id]);
+                matched.add(a.id);
+                matched.add(b.id);
+                break;
             }
         }
 
-        // ペア成立処理
-        for (const pair of matchedPairs) {
-            this.matchMake(pair.player1, pair.player2);
-            console.log(new Date(), `Matched players: ${this.players[pair.player1].name}vs ${this.players[pair.player2].name} (Score:${pair.score})`);
-
-            // キューから削除
-            this.removeFromMatchingQueue(pair.player1);
-            this.removeFromMatchingQueue(pair.player2);
+        for (const [player1, player2] of pairs) {
+            this.removeFromMatchingQueue(player1);
+            this.removeFromMatchingQueue(player2);
+            console.log(new Date(), `Matched players: ${this.players[player1].name} vs ${this.players[player2].name}`);
+            this.matchMake(player1, player2);
         }
     }
 
     async matchMake(player1, player2) {
         const roomId = uuid();  // ルームIDを生成
 
-        // ルームを作成 (マッチングサーバー側での管理用)
+        // 先手・後手はランダムに決める
+        if (Math.random() < 0.5) [player1, player2] = [player2, player1];
 
-
-        const player1Data = this.players[player1];
-        const player2Data = this.players[player2];
         // プレイヤー情報の取得に成功した場合のみ処理を続行
-        if (!player1Data || !player2Data) {
-            console.error(`プレイヤー情報が見つかりませんでした。Player1 ID: ${this.players[player1].player_id}, Player2 ID: ${this.players[player2].player_id}`);
-            // ルーム作成に失敗したとみなし、作成したルームを削除するなどの後処理が必要であればここに追加
+        if (!this.players[player1] || !this.players[player2]) {
+            console.error(`プレイヤー情報が見つかりませんでした。socket: ${player1}, ${player2}`);
+            for (const id of [player1, player2]) {
+                if (this.players[id]) this.players[id].socket.emit("matchFailed");
+            }
             return false;
         }
-
-
-
-        const time = performance.now();
 
         const gameServerAddress = this.game_servers[this.next_game_server_idx];
         this.next_game_server_idx++;
@@ -233,25 +179,53 @@ export class ServerState {
                     // ゲームサーバーでのルーム作成が失敗した場合
                     console.error(`Game server room creation failed with status: ${res.statusCode}`);
                     console.error(`Response data: ${responseData}`);
-                    if (this.players[player1]) {
-                        this.players[player1].socket.emit("matchFailed");
-                    }
-                    if (this.players[player2]) {
-                        this.players[player2].socket.emit("matchFailed");
-                    }
+                    notifyFailed();
                 }
             });
         });
 
+        // ゲームサーバーにつながらないときも、2人に失敗を知らせる（知らせないと「マッチング中」のまま待ち続ける）
+        const notifyFailed = () => {
+            for (const id of [player1, player2]) {
+                if (!this.players[id]) continue;
+                this.players[id].state = "waiting";
+                this.players[id].socket.emit("matchFailed");
+            }
+        };
+        req.setTimeout(10000, () => req.destroy(new Error('timeout')));
         req.on('error', (e) => {
             console.error(`Problem with game server request: ${e.message}`);
-            // エラーハンドリング（例: マッチングを解除してプレイヤーを待機状態に戻す）
-            // クライアントにエラーを通知することも検討
+            notifyFailed();
         });
 
         req.end(postData);
 
         return true; // リクエスト送信自体は成功
+    }
+
+    // 対局中の人数。ゲームサーバーの /status を定期的に問い合わせて合計する
+    playingCount = 0;
+
+    updatePlayingCount() {
+        const requests = this.game_servers.map(address => new Promise((resolve) => {
+            const req = https.get(address + '/status', (res) => {
+                let body = '';
+                res.on('data', (chunk) => { body += chunk; });
+                res.on('end', () => {
+                    try {
+                        const playing = JSON.parse(body).playing;
+                        resolve(Number.isInteger(playing) && playing >= 0 ? playing : 0);
+                    } catch (e) {
+                        resolve(0);
+                    }
+                });
+            });
+            req.setTimeout(3000, () => req.destroy(new Error('timeout')));
+            req.on('error', () => resolve(0));
+        }));
+        return Promise.all(requests).then(counts => {
+            this.playingCount = counts.reduce((a, b) => a + b, 0);
+        });
     }
 
     async sendServerStatus() {
