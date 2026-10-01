@@ -2,7 +2,8 @@ import { Keyboard } from "./keyboard.js";
 import { GameManager } from "./game_manager.js";
 import { Board } from './board.js';
 import { AudioManager } from "./audio_manager.js"; // audio_manager.jsからインポート
-import { clearTitleHTML, createTitleScene, initTitleText, nameInput, playCountText, ratingText, roomIdInput, roomJoinFailed, updateRanking } from "./scene_title.js";
+import { clearTitleHTML, createTitleScene, initTitleText, renderTitleStatus, roomJoinFailed, updateRanking } from "./scene_title.js";
+import { isMatching, matchFound, showNotice, stopMatching, updateMatchingPill } from "./matching.js";
 import { createPlayScene, backToRoom, endGame, endRoomGame, initGameText, connectionLost } from "./scene_game.js";
 import { createRoomScene, initRoomText, setRoomData, roomUpdate, roomdata } from "./scene_room.js";
 import { CHARACTER_FOLDER, LANGUAGE_FOLDER, LANGUAGES, MOVETIME, NUM_QUOTES } from "./const.js";
@@ -56,7 +57,7 @@ export function setSelectedCharacterName(name) {
   selectedCharacterName = name;
 }
 export const title_img = new Image(1920, 1080);
-title_img.src = '/images/title.png';
+title_img.src = '/images/title_261001.jpg';
 
 export const battle_img = new Image(1920, 1080);
 battle_img.src = '/images/battle.png';
@@ -110,6 +111,7 @@ export function setScene(s) {
   }
   scene = s;
   if (canvas) resizeHTML();
+  updateMatchingPill();
 }
 
 export function setPlayerName(name) {
@@ -127,18 +129,7 @@ export function setSceneType(str) {
 export function setStatus(rating, total_games) {
   playerStatus.total_games = total_games;
   playerStatus.rating = Math.round(rating);
-  playCountText.text = () => {
-    return `${strings['game-count']}:${total_games}`
-  }
-  if (total_games >= 10) {
-    ratingText.text = () => {
-      return `${strings['rating']}:${Math.round(rating)}`
-    }
-  } else {
-    ratingText.text = () => {
-      return `${strings['rating']}: ${strings['unrated']}`
-    }
-  }
+  renderTitleStatus();
 }
 
 export const matchingServerUrl = window.location.hostname === 'localhost' ?
@@ -350,43 +341,10 @@ function handleResize() {
   resizeHTML();
 }
 
+// HTML の画面部品は各シーンの onLayout（scene.resize から呼ばれる）で配置する
 function resizeHTML() {
   if (!scene) return;
   scene.resize();
-  if (scene.portrait) {
-    resizeHTMLPortrait();
-    return;
-  }
-  let target = 0;
-  let offsetX = 0;
-  let offsetY = 0;
-  if (window.innerHeight > window.innerWidth * scene.aspect) {
-    target = window.innerWidth * scene.aspect;
-    offsetY = (window.innerHeight - target) / 2;
-  } else {
-    target = window.innerHeight;
-    offsetX = (window.innerWidth - window.innerHeight / scene.aspect) / 2;
-  }
-
-  nameInput.style = `display: ${nameInput.style.display}; font-size:${(Math.floor(target * 0.03)).toString()}px; padding: 6px; position: absolute; left: ${(target * 0.5 * 16 / 9 + offsetX).toString()}px; bottom: ${(target * 0.05 + offsetY).toString()}px; width:${(target * 0.35).toString()}px; height: ${(target * 0.04).toString()}px; transform: translate(-50%, 0%);`;
-  roomIdInput.style = `display: ${roomIdInput.style.display}; font-size:${(Math.floor(target * 0.025)).toString()}px; padding: 6px; position: absolute; right: ${(target * 0.26 * 16 / 9 + offsetX).toString()}px; bottom: ${(target * 0.18 + offsetY).toString()}px; width:${(target * 0.12).toString()}px; height: ${(target * 0.03).toString()}px; transform: translate(100%, 0%);`;
-}
-
-// 縦画面用の入力欄配置（位置は scene_title.js の縦画面レイアウトに合わせる）
-export const PORTRAIT_NAME_INPUT_Y = 0.47;
-export const PORTRAIT_ROOM_INPUT = { x: -0.14, y: 0.59, width: 0.22 };
-
-function resizeHTMLPortrait() {
-  const s = scene.scale;
-  // iOS は 16px 未満の入力欄にフォーカスすると画面を拡大してしまうので 16px 以上にする
-  const nameFont = Math.max(16, Math.floor(s * 0.045));
-  const offsetY = scene.htmlOffsetY ?? 0;
-  const namePos = scene.toScreen(0, PORTRAIT_NAME_INPUT_Y + offsetY);
-  nameInput.style = `display: ${nameInput.style.display}; font-size:${nameFont}px; padding: 6px; position: absolute; left: ${namePos.x}px; top: ${namePos.y}px; width:${s * 0.7}px; height: ${s * 0.07}px; box-sizing: border-box; transform: translate(-50%, -50%);`;
-
-  const roomFont = Math.max(16, Math.floor(s * 0.04));
-  const roomPos = scene.toScreen(PORTRAIT_ROOM_INPUT.x, PORTRAIT_ROOM_INPUT.y + offsetY);
-  roomIdInput.style = `display: ${roomIdInput.style.display}; font-size:${roomFont}px; padding: 4px; position: absolute; left: ${roomPos.x}px; top: ${roomPos.y}px; width:${s * PORTRAIT_ROOM_INPUT.width}px; height: ${s * 0.08}px; box-sizing: border-box; transform: translate(-50%, -50%);`;
 }
 
 // ポインターイベント（タッチ・ペン）を既存のマウス用イベント名に変換してシーンに渡す
@@ -596,10 +554,17 @@ export function setupSocket() {
     console.log('Socket disconnected:', reason);
     if (reason !== 'io client disconnect') {
       console.error('Server initiated or network error disconnect.');
-      disconnectFromServer(); // 待っていた要求はサーバー側で消えているので再接続はしない
-      if (sceneType === 'title') {
-        setScene(createTitleScene());
-        alert('サーバーとの接続が切れました。タイトルに戻ります。');
+      // 待っていた要求はサーバー側で消えているので再接続はしない
+      if (isMatching()) {
+        // マッチング中は CPU 戦・対戦履歴の画面にいることもあるので、画面はそのままにする
+        stopMatching();
+        showNotice(strings['matching-disconnected'], 'error');
+      } else {
+        disconnectFromServer();
+        if (sceneType === 'title') {
+          setScene(createTitleScene());
+          showNotice(strings['connect-failed'], 'error');
+        }
       }
     }
   });
@@ -611,6 +576,7 @@ export function setupSocket() {
 
   // マッチングが成立したときの処理 (マッチングサーバーからのイベント)
   socket.on('matchFound', (data) => {
+    matchFound();
     disconnectFromServer();
     const gameServerAddress = data.gameServerAddress;
     //@ts-ignore
@@ -618,18 +584,16 @@ export function setupSocket() {
     setupGameSocketHandlers(data);
   });
 
-  // タイトルへ戻るときはマッチングサーバーとの接続を切る（残すと、後でアプリ切替などで切断されたときに
-  // CPU戦の途中でも切断アラートが出てタイトルへ戻されてしまう）
+  // マッチングに失敗したら接続を切る（CPU 戦・対戦履歴の画面で待っていることもあるので画面はそのまま）
   socket.on('matchFailed', () => {
     console.log("matchFailed");
-    disconnectFromServer();
-    setScene(createTitleScene());
+    stopMatching();
+    showNotice(strings['match-failed'], 'error');
   });
 
-  // マッチングキャンセル (マッチングサーバーからのイベント)
+  // マッチングキャンセルの応答（クライアントはキャンセル時に接続を切るので、通常は届かない）
   socket.on("cancelMatch", () => {
-    disconnectFromServer();
-    setScene(createTitleScene());
+    stopMatching();
   });
 
   socket.on("roomCreated", (data) => {

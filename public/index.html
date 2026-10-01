@@ -76,37 +76,567 @@
       text-align: center;
     }
 
-    #nameInput {
-      margin: 0px;
-      padding: 10px 15px;
-      flex: 1;
-      pointer-events: auto;
-      z-index: 1;
-      background-color: #f0f0f0;
-      color: #000000;
-      text-align: center;
+    /* ---- 共通のUI部品（HTMLのボタン・入力欄・パネル）----
+       --u はゲーム内座標の 1 に当たるピクセル数（scene.js で設定）。画面の大きさに合わせて伸縮させる */
+    :root {
+      --u: 600px;
+      --ui-blue: #3241c9;
+      --ui-blue-hover: #4152e0;
+      --ui-pink: #df398c;
+      --ui-pink-hover: #ec4d9c;
+      --ui-gray: #4a4a5c;
+      --ui-gray-hover: #5a5a6e;
+      --ui-panel: rgba(16, 16, 28, 0.82);
+      --ui-border: rgba(255, 255, 255, 0.16);
+      --ui-text: #ffffff;
+      --ui-muted: #c9c9d8;
+      --ui-gold: #c2a34f;
+    }
+
+    .ubtn {
+      background: var(--ui-blue);
+      color: var(--ui-text);
       border: none;
-      border-radius: 10px;
-      font-size: 24px;
-      width: 350px;
+      border-radius: 0.4em;
+      padding: 0.45em 0.9em;
+      font-size: 1em;
+      font-family: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .ubtn:hover {
+      background: var(--ui-blue-hover);
+    }
+
+    .ubtn-main {
+      background: var(--ui-pink);
+      font-size: 1.45em;
+      padding: 0.4em 0.9em;
+    }
+
+    .ubtn-main:hover {
+      background: var(--ui-pink-hover);
+    }
+
+    .ubtn-sub {
+      background: var(--ui-gray);
+    }
+
+    .ubtn-sub:hover {
+      background: var(--ui-gray-hover);
+    }
+
+    .ubtn.is-open {
+      background: var(--ui-blue-hover);
+    }
+
+    .uinput {
+      background: #f0f0f0;
+      color: #000000;
+      border: none;
+      border-radius: 0.4em;
+      padding: 0.4em 0.6em;
+      font-size: 1em;
+      font-family: inherit;
+      text-align: center;
+      min-width: 0;
+      box-sizing: border-box;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .upanel {
+      background: var(--ui-panel);
+      border: 1px solid var(--ui-border);
+      border-radius: 0.6em;
+      color: var(--ui-text);
+    }
+
+    /* ---- タイトル画面 ---- */
+    #titleUI {
+      position: absolute;
+      box-sizing: border-box;
+      display: grid;
+      color: var(--ui-text);
+      font-family: sans-serif;
+      z-index: 3;
+      /* キャラ（Canvas）を置く枠などの空き部分はキャンバスに操作を通す */
+      pointer-events: none;
+    }
+
+    #titleUI > * {
+      pointer-events: auto;
+    }
+
+    #titleUI .tui-chara {
+      pointer-events: none;
+    }
+
+    /* 一番上の列は、音量設定・Discord（画面右上の HTML ボタン）と同じ高さにそろえる。
+       --bar-top・--bar-height は scene_title.js で音量設定ボタンの位置から設定する */
+    #titleUI.landscape {
+      font-size: calc(var(--u) * 0.024);
+      padding: var(--bar-top, 8px) calc(var(--u) * 0.03) calc(var(--u) * 0.02);
+      grid-template-columns: minmax(0, 1fr) calc(var(--u) * 0.6);
+      grid-template-rows: var(--bar-height, auto) auto auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "lang     lang"
+        "announce announce"
+        "logo     logo"
+        "chara    panel"
+        "charabtn sub";
+      column-gap: calc(var(--u) * 0.04);
+      row-gap: calc(var(--u) * 0.015);
+    }
+
+    /* タッチ端末（スマホ・タブレット）では文字を小さくしすぎない。
+       iOS は 16px 未満の入力欄にフォーカスすると画面を拡大するので、入力欄は 16px 以上にする */
+    @media (pointer: coarse) {
+      #titleUI.landscape {
+        font-size: max(11px, calc(var(--u) * 0.024));
+      }
+
+      .uinput {
+        font-size: max(16px, 1em);
+      }
+    }
+
+    #titleUI.portrait {
+      font-size: max(13px, calc(var(--u) * 0.04));
+      padding: var(--bar-top, 8px) 12px 12px;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: var(--bar-height, auto) auto auto minmax(0, 1fr) auto auto auto;
+      grid-template-areas:
+        "lang"
+        "announce"
+        "logo"
+        "chara"
+        "charabtn"
+        "panel"
+        "sub";
+      row-gap: 8px;
+    }
+
+    /* 言語は画面の左上（右上の音量設定と左右対称の位置）。--lang-left は scene_title.js で設定する */
+    .tui-lang {
+      position: absolute;
+      left: var(--lang-left, 8px);
+      top: var(--bar-top, 8px);
+      height: var(--bar-height, auto);
+      background: var(--ui-blue);
+      color: var(--ui-text);
+      border: none;
+      border-radius: 0.4em;
+      padding: 0.35em 0.5em;
+      font-size: var(--bar-font, 0.9em);
+      font-family: inherit;
+    }
+
+    .tui-announce:empty {
+      display: none;
+    }
+
+    .tui-announce {
+      grid-area: announce;
+      align-self: start;
+      font-size: 0.9em;
+      text-shadow: 0 0 3px #000, 0 0 3px #000;
+      white-space: pre-line;
+    }
+
+    /* タイトルの文字はキャンバスに描く（元のデザイン）。ここは同じ大きさの場所を取るだけ */
+    .tui-logo {
+      grid-area: logo;
+      margin: 0;
+      text-align: center;
+      font-weight: bold;
+      line-height: 1.1;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #titleUI.landscape .tui-logo {
+      font-size: 4.6em;
+    }
+
+    #titleUI.portrait .tui-logo {
+      font-size: 2.1em;
+    }
+
+    .tui-chara {
+      grid-area: chara;
+    }
+
+    .tui-ranking {
+      grid-area: ranking;
+      align-self: center;
+      padding: 0.5em 0.7em;
+    }
+
+    .tui-ranking-title {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 0.3em;
+    }
+
+    .tui-ranking ol {
+      margin: 0;
+      padding: 0 0 0 1.6em;
+      font-size: 0.9em;
+      line-height: 1.45;
+    }
+
+    .tui-ranking li {
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    #roomIdInput {
-      margin: 0px;
-      padding: 5px 7px;
-      flex: 1;
-      pointer-events: auto;
-      z-index: 1;
-      background-color: #f0f0f0;
-      color: #000000;
-      text-align: center;
-      border: none;
-      border-radius: 5px;
+    .tui-ranking .rate {
+      display: inline-block;
+      min-width: 2.6em;
+      margin-right: 0.4em;
+      color: var(--ui-gold);
+      font-variant-numeric: tabular-nums;
+    }
 
-      font-size: 20px;
-      width: 100px;
-      white-space: nowrap;
+    #titleUI.portrait .tui-ranking {
+      font-size: 0.8em;
+    }
+
+    .tui-panel {
+      grid-area: panel;
+      align-self: center;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5em;
+      padding: 0.8em;
+    }
+
+    .tui-play {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5em;
+    }
+
+    .tui-status {
+      display: flex;
+      justify-content: center;
+      gap: 1.2em;
+      font-size: 0.9em;
+      color: var(--ui-muted);
+    }
+
+    .tui-levels {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.35em;
+    }
+
+    .tui-levels .ubtn {
+      padding: 0.4em 0;
+    }
+
+    .tui-row {
+      display: flex;
+      gap: 0.5em;
+    }
+
+    /* 入力欄は既定の幅（size 属性ぶん）で枠を押し広げないよう、枠に合わせる */
+    .tui-play > .uinput {
+      width: 100%;
+    }
+
+    .tui-row .uinput {
+      flex: 1;
+      width: 0;
+    }
+
+    .tui-matching {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5em;
+    }
+
+    .tui-matching-text {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6em;
+      font-size: 1.4em;
+      padding: 0.2em 0;
+    }
+
+    /* 対局中・マッチング待ちの人数（0人の項目は出さない） */
+    .tui-live {
+      text-align: center;
+      font-size: 0.9em;
+      color: var(--ui-muted);
+    }
+
+    .tui-live .is-waiting {
+      color: #ffd56a;
+      font-weight: bold;
+    }
+
+    /* ---- マッチング中の表示（タイトル以外の画面）・お知らせ ---- */
+    .matching-pill {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 15;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px 6px 12px;
+      font-family: sans-serif;
+      font-size: 15px;
+    }
+
+    .matching-pill[hidden] {
+      display: none;
+    }
+
+    /* 対局画面（横画面）は、上の列の投了ボタンの右隣（盤より上の空き）に出す。位置はゲーム内座標（--u）で合わせる */
+    .matching-pill[data-place="game"] {
+      left: calc(50% - var(--u) * 0.72);
+      top: calc(50% - var(--u) * 0.49);
+      padding: 3px 6px 3px 10px;
+      font-size: 13px;
+    }
+
+    .matching-pill .ubtn {
+      padding: 0.3em 0.7em;
+    }
+
+    .notice-toast {
+      position: fixed;
+      top: 76px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
+      max-width: calc(100vw - 32px);
+      padding: 10px 18px;
+      border-radius: 8px;
+      background: #2f6f3a;
+      border: 1px solid #5fae6c;
+      color: #ffffff;
+      font-family: sans-serif;
+      font-size: 16px;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .notice-toast[data-kind="error"] {
+      background: #b8332b;
+      border-color: #e0675f;
+    }
+
+    .notice-toast[hidden] {
+      display: none;
+    }
+
+    @media (orientation: portrait), (max-height: 500px) {
+      .matching-pill {
+        top: 8px;
+        left: 8px;
+        font-size: 14px;
+      }
+
+      .notice-toast {
+        top: 50px;
+        font-size: 15px;
+      }
+    }
+
+    /* 対局画面（縦画面）は、上の帯の下・右上の相手キャラの上に出す（左は相手の駒台があるため） */
+    @media (orientation: portrait) {
+      .matching-pill[data-place="game"] {
+        left: auto;
+        right: 8px;
+        top: 50px;
+      }
+    }
+
+    .tui-spinner {
+      width: 1em;
+      height: 1em;
+      border: 0.15em solid rgba(255, 255, 255, 0.3);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: tui-spin 0.9s linear infinite;
+    }
+
+    @keyframes tui-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .tui-charabtn {
+      grid-area: charabtn;
+      /* 横画面はキャラの真下（左からの位置は scene_title.js で合わせる） */
+      justify-self: start;
+      align-self: end;
+    }
+
+    #titleUI.portrait .tui-charabtn {
+      justify-self: end;
+    }
+
+    .tui-sub {
+      grid-area: sub;
+      display: flex;
+      gap: 0.5em;
+      justify-content: flex-end;
+      align-self: end;
+    }
+
+    #titleUI.portrait .tui-sub {
+      justify-content: center;
+    }
+
+    #titleUI [hidden] {
+      display: none !important;
+    }
+
+    /* 入室失敗・接続失敗のお知らせ。パネルのすぐ下に重ねて出す（出ても他の部品は動かない） */
+    .tui-panel {
+      position: relative;
+    }
+
+    .tui-toast {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 0.4em);
+      padding: 0.5em 0.8em;
+      background: #b8332b;
+      border: 1px solid #e0675f;
+      border-radius: 0.5em;
+      text-align: center;
+      font-size: 0.95em;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ---- ルール画面（ダイアログ）---- */
+    .udialog-backdrop {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 20;
+      font-family: sans-serif;
+      font-size: max(14px, calc(var(--u) * 0.026));
+    }
+
+    .udialog-backdrop[hidden] {
+      display: none;
+    }
+
+    .udialog {
+      width: min(calc(var(--u) * 1.2), calc(100vw - 24px));
+      max-height: calc(100% - 24px);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8em;
+      padding: 1em;
+      overflow: hidden;
+    }
+
+    .udialog-tabs {
+      display: flex;
+      gap: 0.4em;
+      flex-wrap: wrap;
+    }
+
+    .udialog-tabs .ubtn[aria-selected="false"] {
+      background: var(--ui-gray);
+    }
+
+    .udialog-title {
+      margin: 0;
+      font-size: 1.4em;
+      text-align: center;
+    }
+
+    .udialog-body {
+      overflow-y: auto;
+      white-space: pre-line;
+      line-height: 1.6;
+      min-height: 0;
+    }
+
+    .udialog-footer {
+      display: flex;
+      justify-content: center;
+    }
+
+    .piece-grid {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      gap: 0.3em;
+    }
+
+    .piece-cell {
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 0.3em;
+      padding: 0.1em;
+      cursor: pointer;
+      aspect-ratio: 1;
+    }
+
+    .piece-cell.is-selected,
+    .piece-cell:hover {
+      border-color: var(--ui-gold);
+    }
+
+    .piece-cell img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .piece-cell.is-empty {
+      visibility: hidden;
+    }
+
+    .piece-moves {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1em;
+      margin-top: 0.8em;
+      white-space: normal;
+    }
+
+    .piece-moves-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1.6em);
+      grid-auto-rows: 1.6em;
+      gap: 2px;
+      padding: 2px;
+      background: #000000;
+    }
+
+    .piece-moves-grid div {
+      background: #d9a95e;
+    }
+
+    .piece-moves-grid div.can {
+      background: #6fb8e8;
+    }
+
+    .piece-moves-grid img {
+      width: 100%;
+      height: 100%;
     }
 
     .blueButton {
@@ -830,7 +1360,8 @@
       top: 8px;
       left: 50%;
       transform: translateX(-50%);
-      max-width: calc(100vw - 280px);
+      /* 左上の「マッチング中」と右上の音量設定ボタンにかからない幅にする */
+      max-width: calc(100vw - 420px);
       padding: 6px 14px;
       background: rgba(20, 20, 28, 0.85);
       border-radius: 10px;
@@ -962,10 +1493,68 @@
 
   <canvas id="shogiCanvas" tabindex="0"></canvas>
 
-  <input type="text" id="nameInput" autocomplete="off" placeholder="名前" maxlength="12"
-    style="display: none; font-size: 24px; position: absolute; bottom: 5%; left: 50%; width:350px; height:30px; transform: translate(-50%, 0%);">
-  <input type="text" id="roomIdInput" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="部屋ID" maxlength="6"
-    style="display: none; font-size: 20px; padding: 6px; position: absolute; bottom: 18%; left: 72%; width:100px; height:20px; transform: translate(0%, 0%);">
+  <!-- タイトル画面（背景とキャラはキャンバス、それ以外はここ） -->
+  <div id="titleUI" class="landscape" style="display: none;">
+    <select id="titleLanguage" class="tui-lang" aria-label="Language"></select>
+    <div id="titleAnnounce" class="tui-announce"></div>
+    <h1 id="titleLogo" class="tui-logo"></h1>
+    <div id="titleCharaArea" class="tui-chara"></div>
+    <!-- ランキングはいったん表示しない（中身は scene_title.js の updateRanking で作り続ける） -->
+    <div id="titleRanking" class="tui-ranking upanel" hidden>
+      <div id="titleRankingTitle" class="tui-ranking-title"></div>
+      <ol id="titleRankingList"></ol>
+    </div>
+    <div id="titlePanel" class="tui-panel upanel">
+      <div id="titlePlay" class="tui-play">
+        <input type="text" id="nameInput" class="uinput" autocomplete="off" placeholder="名前" maxlength="12">
+        <div class="tui-status"><span id="titleGameCount"></span><span id="titleRating"></span></div>
+        <div id="titleLive" class="tui-live" hidden></div>
+        <button id="onlineMatchButton" class="ubtn ubtn-main"></button>
+        <button id="cpuMatchButton" class="ubtn" aria-expanded="false"></button>
+        <div id="cpuLevels" class="tui-levels" hidden></div>
+        <div class="tui-row">
+          <input type="text" id="roomIdInput" class="uinput" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="部屋ID" maxlength="6">
+          <button id="joinRoomButton" class="ubtn"></button>
+        </div>
+        <button id="makeRoomButton" class="ubtn"></button>
+      </div>
+      <div id="titleMatching" class="tui-matching" hidden>
+        <div class="tui-matching-text"><span class="tui-spinner"></span><span id="matchingText"></span></div>
+        <div id="matchingLive" class="tui-live" hidden></div>
+        <button id="matchingCpuButton" class="ubtn" aria-expanded="false"></button>
+        <div id="matchingCpuLevels" class="tui-levels" hidden></div>
+        <button id="matchingHistoryButton" class="ubtn"></button>
+        <button id="cancelMatchButton" class="ubtn ubtn-sub"></button>
+      </div>
+      <div id="titleToast" class="tui-toast" role="alert" hidden></div>
+    </div>
+    <button id="changeCharaButton" class="ubtn tui-charabtn"></button>
+    <div class="tui-sub">
+      <button id="historyButton" class="ubtn ubtn-sub"></button>
+      <button id="ruleButton" class="ubtn ubtn-sub"></button>
+    </div>
+  </div>
+
+  <!-- マッチング中に CPU 戦・対戦履歴の画面へ移ったときの表示 -->
+  <div id="matchingPill" class="matching-pill upanel" data-place="corner" hidden>
+    <span class="tui-spinner"></span><span id="matchingPillText"></span>
+    <button id="matchingPillStop" class="ubtn ubtn-sub"></button>
+  </div>
+  <div id="noticeToast" class="notice-toast" role="status" hidden></div>
+
+  <!-- ルール画面 -->
+  <div id="ruleDialog" class="udialog-backdrop" hidden>
+    <div class="udialog upanel" role="dialog" aria-modal="true" aria-labelledby="ruleTitle">
+      <div class="udialog-tabs" role="tablist">
+        <button id="ruleTabPieces" class="ubtn" role="tab"></button>
+        <button id="ruleTabManual" class="ubtn" role="tab"></button>
+        <button id="ruleTabWin" class="ubtn" role="tab"></button>
+      </div>
+      <h2 id="ruleTitle" class="udialog-title"></h2>
+      <div id="ruleBody" class="udialog-body"></div>
+      <div class="udialog-footer"><button id="ruleCloseButton" class="ubtn ubtn-sub"></button></div>
+    </div>
+  </div>
   <button id="charaSubmitButton" class="blueButton"
     style="display: none; position: absolute; bottom: 21%; left: 70%;  font-size: 40px; padding:10px 15px; border-radius: 10px; transform: translate(-50%, -50%);">決定</button>
   </div>

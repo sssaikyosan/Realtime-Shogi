@@ -5,6 +5,8 @@ export function isPortrait() {
   return window.innerHeight >= window.innerWidth;
 }
 
+let lastUnit = 0;
+
 export class Scene {
   scale = 0;
   aspect = 9 / 16;
@@ -19,8 +21,6 @@ export class Scene {
   // 縦横が切り替わったとき・画面サイズが変わったときに呼ばれる (portrait:boolean, scene) => void
   onLayout = null;
   layoutKey = null;
-  // 縦画面でHTML入力欄をずらす量（ゲーム内座標）。onLayout 内で設定する
-  htmlOffsetY = 0;
 
   init() {
 
@@ -87,6 +87,11 @@ export class Scene {
     if (this.scale > 0) {
       this.halfWidth = window.innerWidth * 0.5 / this.scale;
       this.halfHeight = window.innerHeight * 0.5 / this.scale;
+      // HTML の画面部品の大きさの基準（CSS の --u = ゲーム内座標の 1）
+      if (this.scale !== lastUnit) {
+        lastUnit = this.scale;
+        document.documentElement.style.setProperty('--u', `${this.scale}px`);
+      }
     }
     this.applyLayout();
   }

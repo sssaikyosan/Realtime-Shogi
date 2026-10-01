@@ -11,6 +11,7 @@ import { OverlayUI, rememberLayout, restoreLayout } from "./ui.js";
 import { ButtonUI } from "./ui_button.js";
 import { ToggleUI } from "./ui_toggle.js";
 import { beginRecord, cancelRecord, finishRecord, isRecording } from "./match_history.js";
+import { isMatching } from "./matching.js";
 
 export const winCon = document.getElementById("winCon");
 export const roomWinCon = document.getElementById("roomWinCon");
@@ -136,6 +137,8 @@ let enemyCharacterUI;
 export function createPlayScene(senteName, senteRating, senteCharacter, goteName, goteRating, goteCharacter, roomId, roomType, servertime, roomteban, moveTime, pawnLimit4thRank, cpulevel = null) {
     setSceneType('game');
     clearTitleHTML();
+    // マッチングしながらの CPU 戦の結果表示中に相手が見つかったときなど、前の対局の結果表示を消す
+    resultOverlay.style.display = "none";
     let playScene = new Scene();
 
     // 背景画像UIを追加 (他のUIより前に描画されるように最初に追加)
@@ -498,7 +501,8 @@ function layoutPlayScene(portrait, sc, ui) {
 
 export async function backToTitle() {
     resultOverlay.style.display = "none";
-    disconnectFromServer();
+    // マッチングしながらの CPU 戦から戻るときは、マッチングサーバーとの接続を残す
+    if (!isMatching()) disconnectFromServer();
     await getTitleInfo();
     setScene(createTitleScene());
     audioManager.playBGM('title');

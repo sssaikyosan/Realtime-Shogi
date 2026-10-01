@@ -1,22 +1,69 @@
 //タイトルシーン要素
+// ボタン・入力欄・ランキングなどは HTML（index.html の #titleUI）、背景とキャラはキャンバスに描く
 
 import { createPlayScene } from "./scene_game.js";
-import { serverStatus, title_img, audioManager, setPlayerName, playerName, socket, selectedCharacterName, player_id, setScene, characterFiles, setSelectedCharacterName, connectToServer, strings, playerStatus, setStatus, setStrings, setSceneType, scene, isTouchDevice, PORTRAIT_NAME_INPUT_Y, PORTRAIT_ROOM_INPUT } from "./main.js";
+import { createHistoryScene } from "./scene_history.js";
+import { isMatching, startMatching, stopMatching, onMatchingChange, liveStatus, refreshLiveStatus } from "./matching.js";
+import { serverStatus, title_img, audioManager, setPlayerName, playerName, selectedCharacterName, player_id, setScene, characterFiles, setSelectedCharacterName, connectToServer, strings, all_strings, playerStatus, setStrings, setSceneType, scene, isTouchDevice } from "./main.js";
 import { Scene } from "./scene.js";
 import { OverlayUI, rememberLayout, restoreLayout } from "./ui.js";
 import { BackgroundImageUI } from "./ui_background.js";
 import { CharacterImageUI } from "./ui_character.js";
-import { LoadingUI } from "./ui_loading.js";
 import { TextUI } from "./ui_text.js";
-import { KOMADAI_TYPES, LANGUAGES, MOVETIME, PROMOTE_TYPES } from "./const.js";
+import { KOMADAI_TYPES, LANGUAGES, MOVETIME, PIECE_MOVES, PROMOTE_TYPES } from "./const.js";
 import { ImageUI } from "./ui_image.js";
 import { ButtonUI } from "./ui_button.js";
-import { PieceHelpUI } from "./piece_help.js";
-import { createHistoryScene } from "./scene_history.js";
 
-export const discordButton = document.getElementById("discordButton");
+const $ = (id) => document.getElementById(id);
 
-export const roomIdInput = /** @type {HTMLInputElement} */ (document.getElementById("roomIdInput"));
+export const discordButton = $("discordButton");
+export const settingsButton = $("settingsButton");
+export const bgmVolumeText = document.querySelector('label[for="bgmVolumeSlider"]');
+export const seVolumeText = document.querySelector('label[for="soundVolumeSlider"]');
+export const voiceVolumeText = document.querySelector('label[for="voiceVolumeSlider"]');
+
+export const nameInput = /** @type {HTMLInputElement} */ ($("nameInput"));
+export const roomIdInput = /** @type {HTMLInputElement} */ ($("roomIdInput"));
+
+const titleUI = $("titleUI");
+const titleLanguage = /** @type {HTMLSelectElement} */ ($("titleLanguage"));
+const titleAnnounce = $("titleAnnounce");
+const titleLogo = $("titleLogo");
+const titleCharaArea = $("titleCharaArea");
+const titleRankingTitle = $("titleRankingTitle");
+const titleRankingList = $("titleRankingList");
+const titlePlay = $("titlePlay");
+const titleGameCount = $("titleGameCount");
+const titleRating = $("titleRating");
+const onlineMatchButton = $("onlineMatchButton");
+const cpuMatchButton = $("cpuMatchButton");
+const cpuLevels = $("cpuLevels");
+const joinRoomButton = $("joinRoomButton");
+const makeRoomButton = $("makeRoomButton");
+const titleMatching = $("titleMatching");
+const matchingText = $("matchingText");
+const cancelMatchButton = $("cancelMatchButton");
+const titleLive = $("titleLive");
+const matchingLive = $("matchingLive");
+const matchingCpuButton = $("matchingCpuButton");
+const matchingCpuLevels = $("matchingCpuLevels");
+const matchingHistoryButton = $("matchingHistoryButton");
+const changeCharaButton = $("changeCharaButton");
+const historyButton = $("historyButton");
+const ruleButton = $("ruleButton");
+const titleToast = $("titleToast");
+
+const ruleDialog = $("ruleDialog");
+const ruleTabs = { pieces: $("ruleTabPieces"), manual: $("ruleTabManual"), win: $("ruleTabWin") };
+const ruleTitle = $("ruleTitle");
+const ruleBody = $("ruleBody");
+const ruleCloseButton = $("ruleCloseButton");
+
+// 今のタイトル画面のキャラ（キャラ変更の画面にも引き継ぐ）
+let titleCharacter = null;
+// タイトルの文字（元のデザインのままキャンバスに描く。HTML の #titleLogo は場所を取るだけ）
+let titleText = null;
+
 // 部屋IDは大文字に統一しているので、小文字で打っても入力欄ではその場で大文字にする
 roomIdInput.addEventListener('input', () => {
     const upper = roomIdInput.value.toUpperCase();
@@ -25,198 +72,415 @@ roomIdInput.addEventListener('input', () => {
     roomIdInput.value = upper;
     roomIdInput.setSelectionRange(cursor, cursor);
 });
-export const nameInput = /** @type {HTMLInputElement} */ (document.getElementById("nameInput"));
-export const settingsButton = document.getElementById("settingsButton");
-export const bgmVolumeText = document.querySelector('label[for="bgmVolumeSlider"]');
-export const seVolumeText = document.querySelector('label[for="soundVolumeSlider"]');
-export const voiceVolumeText = document.querySelector('label[for="voiceVolumeSlider"]');
-
-const languageOverlay = new OverlayUI({
-    x: -0.78,
-    y: -0.36,
-    height: 0.13,
-    width: 0.11,
-    visible: false
+roomIdInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') joinRoomSubmit();
 });
 
-let langY = 0.0;
-for (const lang in LANGUAGES) {
-    const langButton = new ButtonUI({
-        text: LANGUAGES[lang],
-        x: 0.0,
-        y: -0.046 + langY,
-        height: 0.024,
-        width: 0.1,
-        color: '#3241c9',
-        textSize: 0.014,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => {
-            setStrings(lang);
-            setScene(createTitleScene());
-        }
-    });
-    languageOverlay.add(langButton);
-    langY += 0.03;
-}
-
-const cpuLevelOverlay = new OverlayUI({
-    x: 0.65,
-    y: 0.16,
-    height: 0.235,
-    width: 0.11,
-    visible: false
-});
-
-for (let i = 1; i <= 5; i++) {
-    const cpulevelButton = new ButtonUI({
-        text: `level${i}`,
-        x: 0.0,
-        y: 0.09 - (i - 1) * 0.045,
-        height: 0.04,
-        width: 0.1,
-        color: '#3241c9',
-        textSize: 0.025,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => {
-            cpuLevelSubmit(i.toString());
-        }
-    });
-    cpuLevelOverlay.add(cpulevelButton);
-}
-
-export const statusOverlay = new OverlayUI({
-    x: -0.78,
-    y: 0.43,
-    width: 0.2,
-    height: 0.1,
-    color: '#111122bb'
-});
-
-export const playCountText = new TextUI({
-    text: () => ``,
-    x: 0,
-    y: -0.015,
-    size: 0.025,
-    colors: ["#ffffff", "#00000000", "#00000000"],
-    position: 'center'
-});
-
-export const ratingText = new TextUI({
-    text: () => ``,
-    x: 0,
-    y: 0.025,
-    size: 0.025,
-    colors: ["#ffffff", "#00000000", "#00000000"],
-    position: 'center'
-});
-
-export const cancelMatchButton = new ButtonUI({
-    text: ``,
-    x: 0.65,
-    y: 0.4,
-    height: 0.08,
-    width: 0.24,
-    color: '#df398c',
-    textSize: 0.04,
-    textColors: ['#ffffffff', '#00000000', '#00000000'],
-    onClick: () => {
-        if (socket) {
-            socket.emit('cancelMatch');
-        }
+// CPU のレベル選択（通常の CPU 対戦と、マッチングしながらの CPU 戦の両方に置く）
+for (const container of [cpuLevels, matchingCpuLevels]) {
+    for (let i = 1; i <= 5; i++) {
+        const button = document.createElement('button');
+        button.className = 'ubtn';
+        button.textContent = `Lv${i}`;
+        button.addEventListener('click', () => cpuLevelSubmit(String(i)));
+        container.appendChild(button);
     }
-});
-
-const rankingOverlay = new OverlayUI({
-    x: 0.72,
-    y: -0.22,
-    width: 0.3,
-    height: 0.36
-});
-
-const rankingTitle = new TextUI({
-    text: () => {
-        return ``
-    },
-    x: 0,
-    y: -0.15,
-    size: 0.03,
-    colors: ["#ffffffff", "#00000000", "#00000000"]
-});
-
-for (let i = 0; i < 10; i++) {
-    const rankingText = new TextUI({
-        text: () => {
-            return ``
-        },
-        x: -0.13,
-        y: -0.11 + i * 0.03,
-        size: 0.022,
-        colors: ["#ffffffff", "#00000000", "#00000000"],
-        position: 'left'
-    });
-    rankingOverlay.add(rankingText);
 }
 
-const matchingText = new TextUI({
-    text: () => {
-        return ``;
-    },
-    x: 0.0,
-    y: 0.4,
-    size: 0.05,
-    colors: ["#ffffff", "#00000000", "#00000000"],
-    position: 'center'
+for (const lang in LANGUAGES) {
+    const option = document.createElement('option');
+    option.value = lang;
+    option.textContent = LANGUAGES[lang];
+    titleLanguage.appendChild(option);
+}
+titleLanguage.addEventListener('change', () => {
+    setStrings(titleLanguage.value);
+    setScene(createTitleScene());
 });
 
-const loading = new LoadingUI({
-    x: 0.2,
-    y: 0.4,
-    radius: 0.03,
+onlineMatchButton.addEventListener('click', startOnlineMatch);
+cpuMatchButton.addEventListener('click', () => setLevelsOpen(cpuMatchButton, cpuLevels, cpuLevels.hidden));
+joinRoomButton.addEventListener('click', joinRoomSubmit);
+makeRoomButton.addEventListener('click', makeRoomSubmit);
+cancelMatchButton.addEventListener('click', () => stopMatching());
+matchingCpuButton.addEventListener('click', () => setLevelsOpen(matchingCpuButton, matchingCpuLevels, matchingCpuLevels.hidden));
+matchingHistoryButton.addEventListener('click', () => setScene(createHistoryScene()));
+onMatchingChange(() => {
+    if (scene && scene.onLayout === layoutTitle) setMatching(isMatching());
+    renderLive();
 });
+changeCharaButton.addEventListener('click', () => setScene(createCharacterSelectScene(titleCharacter)));
+historyButton.addEventListener('click', () => setScene(createHistoryScene()));
+ruleButton.addEventListener('click', () => openRule('pieces'));
 
-rankingOverlay.add(rankingTitle);
-statusOverlay.add(playCountText);
-statusOverlay.add(ratingText);
+// 開いている部品が増減して枠の大きさが変わったら、キャラの位置を合わせ直す
+function relayoutTitle() {
+    if (scene && scene.onLayout === layoutTitle) scene.applyLayout(true);
+}
+
+function setLevelsOpen(button, levels, open) {
+    levels.hidden = !open;
+    button.classList.toggle('is-open', open);
+    button.setAttribute('aria-expanded', String(open));
+    relayoutTitle();
+}
+
+// マッチング中は対局を始めるボタンの代わりに「マッチング中」と、待っている間の遊び方（CPU 戦・対戦履歴）とキャンセルを出す
+function setMatching(matching) {
+    if (titleMatching.hidden === !matching) return;
+    titlePlay.hidden = matching;
+    titleMatching.hidden = !matching;
+    changeCharaButton.hidden = matching;
+    historyButton.hidden = matching;
+    titleLanguage.disabled = matching;
+    setLevelsOpen(matchingCpuButton, matchingCpuLevels, false);
+    relayoutTitle();
+}
+
+// 対局中・マッチング待ちの人数。0人の項目は出さない（マッチング中は自分も待ち人数に入るので対局中だけ出す）
+function renderLive() {
+    const parts = [];
+    if (liveStatus.playing > 0) parts.push({ text: strings['live-playing'].replace('{n}', liveStatus.playing) });
+    const waitingParts = [...parts];
+    if (liveStatus.waiting > 0) waitingParts.push({ text: strings['live-waiting'].replace('{n}', liveStatus.waiting), waiting: true });
+    const fill = (el, items) => {
+        el.replaceChildren();
+        items.forEach((item, i) => {
+            if (i > 0) el.appendChild(document.createTextNode(' ・ '));
+            const span = document.createElement('span');
+            span.textContent = item.text;
+            if (item.waiting) span.className = 'is-waiting';
+            el.appendChild(span);
+        });
+        el.hidden = items.length === 0;
+    };
+    fill(titleLive, waitingParts);
+    fill(matchingLive, parts);
+}
+
+function readPlayerName() {
+    setPlayerName(nameInput.value.trim());
+    localStorage.setItem("playerName", playerName);
+    if (playerName == "") setPlayerName(`${strings['anonymous']}`);
+}
+
+function startOnlineMatch() {
+    readPlayerName();
+    startMatching().catch(err => {
+        console.error("Failed to connect for matching:", err);
+        showTitleMessage(strings['connect-failed']);
+    });
+}
+
+function makeRoomSubmit() {
+    readPlayerName();
+    connectToServer().then(socket => {
+        socket.emit("createRoom", { name: playerName, characterName: selectedCharacterName, player_id: player_id });
+    }).catch(err => {
+        console.error("Failed to connect for creating room:", err);
+        showTitleMessage(strings['connect-failed']);
+    });
+}
+
+function joinRoomSubmit() {
+    readPlayerName();
+    const roomId = roomIdInput.value.trim().toUpperCase();
+    if (!roomId) {
+        roomJoinFailed();
+        return;
+    }
+    connectToServer().then(socket => {
+        socket.emit("joinRoom", { roomId: roomId, name: playerName, characterName: selectedCharacterName, player_id: player_id });
+    }).catch(err => {
+        console.error("Failed to connect for joining room:", err);
+        showTitleMessage(strings['connect-failed']);
+    });
+}
+
+function cpuLevelSubmit(level) {
+    readPlayerName();
+    clearTitleHTML();
+    const now = performance.now();
+    setScene(createPlayScene([playerName], null, selectedCharacterName, [`CPU${strings['level']}${level}`], null, null, null, 'cpu', now, 'sente', { sente: MOVETIME, gote: MOVETIME }, false, level));
+}
+
+function currentLanguage() {
+    return Object.keys(all_strings).find(lang => all_strings[lang] === strings) ?? localStorage.getItem('language');
+}
 
 export function initTitleText() {
     nameInput.placeholder = strings['name'];
-
     roomIdInput.placeholder = strings['room-id'];
     settingsButton.textContent = strings['volume-setting'];
     bgmVolumeText.textContent = strings['bgm-volume'];
     seVolumeText.textContent = strings['se-volume'];
     voiceVolumeText.textContent = strings['voice-volume'];
 
-    setStatus(playerStatus.rating, playerStatus.total_games);
-    cancelMatchButton.text.text = () => {
-        return `${strings['cancel']}`
+    titleLogo.textContent = strings['title'];
+    titleRankingTitle.textContent = strings['ranking'];
+    onlineMatchButton.textContent = strings['online-match'];
+    cpuMatchButton.textContent = strings['cpu-match'];
+    joinRoomButton.textContent = strings['join-room'];
+    makeRoomButton.textContent = strings['make-room'];
+    matchingText.textContent = strings['matching'];
+    cancelMatchButton.textContent = strings['cancel'];
+    matchingCpuButton.textContent = strings['matching-with-cpu'];
+    matchingHistoryButton.textContent = strings['matching-with-history'];
+    changeCharaButton.textContent = strings['change-character'];
+    historyButton.textContent = strings['history'];
+    ruleButton.textContent = strings['rule'];
+    for (const button of [...cpuLevels.children, ...matchingCpuLevels.children]) {
+        button.title = `${strings['level']}${button.textContent.slice(2)}`;
     }
-    rankingTitle.text = () => {
-        return `${strings['ranking']}`
-    }
-    matchingText.text = () => {
-        return `${strings['matching']}`
-    }
+    renderLive();
+    ruleTabs.pieces.textContent = strings['piece-list'];
+    ruleTabs.manual.textContent = strings['manual'];
+    ruleTabs.win.textContent = strings['win-condition'];
+    ruleCloseButton.textContent = strings['close'];
+    const lang = currentLanguage();
+    if (lang) titleLanguage.value = lang;
+
+    renderTitleStatus();
 }
 
+// 試合数とレート（10試合未満は計測中）
+export function renderTitleStatus() {
+    const games = playerStatus.total_games;
+    titleGameCount.textContent = `${strings['game-count']}: ${games >= 0 ? games : '-'}`;
+    const rating = games >= 10 ? Math.round(playerStatus.rating) : strings['unrated'];
+    titleRating.textContent = `${strings['rating']}: ${rating}`;
+}
 
+export function updateRanking() {
+    titleRankingList.replaceChildren();
+    const players = serverStatus?.topPlayers ?? [];
+    for (let i = 0; i < 10; i++) {
+        const li = document.createElement('li');
+        const player = players[i];
+        if (player) {
+            const rate = document.createElement('span');
+            rate.className = 'rate';
+            rate.textContent = String(Math.round(player.rating));
+            li.appendChild(rate);
+            li.appendChild(document.createTextNode(player.name));
+        }
+        titleRankingList.appendChild(li);
+    }
+}
 
 export function clearTitleHTML() {
     discordButton.style.display = "none";
-    roomIdInput.style.display = "none";
-    nameInput.style.display = "none";
+    titleUI.style.display = "none";
+    closeRule();
+    titleToast.hidden = true;
 }
 
-//タイトルシーン
+let toastTimer = null;
+
+// タイトル画面の中央に短いお知らせを出す（入室失敗・接続失敗など）
+function showTitleMessage(text) {
+    titleToast.textContent = text;
+    titleToast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        titleToast.hidden = true;
+    }, 2500);
+}
+
+export function roomJoinFailed() {
+    console.log("roomJoinFailed");
+    showTitleMessage(strings['join-failed']);
+}
+
+// ---- ルール画面（駒一覧・操作方法・勝利条件）----
+
+function canPieceMove(type, x, y) {
+    for (const move of PIECE_MOVES[type]) {
+        if (x === move.dx && y === move.dy) return true;
+        if (move.recursive) {
+            for (let r = 2; r < 4; r++) {
+                if (x / r === move.dx && y / r === move.dy) return true;
+            }
+        }
+    }
+    return false;
+}
+
+// 駒の動ける範囲（7×7マス、中央が駒）
+function pieceMovesView(type) {
+    const grid = document.createElement('div');
+    grid.className = 'piece-moves-grid';
+    for (let y = -3; y <= 3; y++) {
+        for (let x = -3; x <= 3; x++) {
+            const cell = document.createElement('div');
+            if (x === 0 && y === 0) {
+                const img = document.createElement('img');
+                img.src = `/pieces/${type}.png`;
+                img.alt = '';
+                cell.appendChild(img);
+            } else if (canPieceMove(type, x, y)) {
+                cell.className = 'can';
+            }
+            grid.appendChild(cell);
+        }
+    }
+    return grid;
+}
+
+function piecesView() {
+    const wrap = document.createElement('div');
+    const grid = document.createElement('div');
+    grid.className = 'piece-grid';
+    const moves = document.createElement('div');
+    moves.className = 'piece-moves';
+    const select = (type, cell) => {
+        for (const c of grid.children) c.classList.toggle('is-selected', c === cell);
+        moves.replaceChildren(pieceMovesView(type));
+    };
+    for (const type of [...KOMADAI_TYPES, ...PROMOTE_TYPES]) {
+        const cell = document.createElement('button');
+        cell.className = 'piece-cell';
+        if (!type) {
+            cell.classList.add('is-empty');
+            cell.tabIndex = -1;
+        } else {
+            const img = document.createElement('img');
+            img.src = `/pieces/${type}.png`;
+            img.alt = type;
+            cell.appendChild(img);
+            cell.addEventListener('click', () => select(type, cell));
+            cell.addEventListener('mouseenter', () => select(type, cell));
+        }
+        grid.appendChild(cell);
+    }
+    wrap.appendChild(grid);
+    wrap.appendChild(moves);
+    select(KOMADAI_TYPES[0], grid.children[0]);
+    return wrap;
+}
+
+function showRuleTab(tab) {
+    for (const key in ruleTabs) ruleTabs[key].setAttribute('aria-selected', String(key === tab));
+    if (tab === 'pieces') {
+        ruleTitle.textContent = strings['piece-list'];
+        ruleBody.replaceChildren(piecesView());
+    } else if (tab === 'manual') {
+        ruleTitle.textContent = strings['manual'];
+        ruleBody.textContent = isTouchDevice ? strings['manual-text-touch'] : strings['manual-text'];
+    } else {
+        ruleTitle.textContent = strings['win-condition'];
+        ruleBody.textContent = strings['rule-text'];
+    }
+}
+
+function openRule(tab) {
+    ruleDialog.hidden = false;
+    showRuleTab(tab);
+}
+
+function closeRule() {
+    ruleDialog.hidden = true;
+}
+
+for (const key in ruleTabs) ruleTabs[key].addEventListener('click', () => showRuleTab(key));
+ruleCloseButton.addEventListener('click', closeRule);
+ruleDialog.addEventListener('click', (e) => {
+    if (e.target === ruleDialog) closeRule();
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !ruleDialog.hidden) closeRule();
+});
+
+// ---- タイトルシーン ----
+
+// #titleUI を画面の高さいっぱい・ゲーム画面の幅（横画面は 16:9 ぶん、縦画面は画面幅）に合わせ、
+// キャラ（キャンバス）を HTML の空き枠（.tui-chara）に収める
+function layoutTitle(portrait, sc) {
+    titleUI.className = portrait ? 'portrait' : 'landscape';
+    const width = Math.min(window.innerWidth, portrait ? sc.scale : sc.scale * 16 / 9);
+    const height = window.innerHeight;
+    titleUI.style.width = `${width}px`;
+    titleUI.style.height = `${height}px`;
+    titleUI.style.left = `${(window.innerWidth - width) / 2}px`;
+    titleUI.style.top = '0px';
+    // 一番上の列（言語）を、画面右上の音量設定ボタンと同じ高さにそろえる
+    // 言語は画面の左端から、音量設定ボタンの右端までと同じ間隔に置く（枠は画面の中央にあるので枠の左端からの位置にする）
+    const bar = settingsButton.getBoundingClientRect();
+    if (bar.height > 0) {
+        titleUI.style.setProperty('--bar-top', `${bar.top}px`);
+        titleUI.style.setProperty('--bar-height', `${bar.height}px`);
+        titleUI.style.setProperty('--bar-font', getComputedStyle(settingsButton).fontSize);
+        titleUI.style.setProperty('--lang-left', `${window.innerWidth - bar.right - (window.innerWidth - width) / 2}px`);
+    }
+
+    const logo = titleLogo.getBoundingClientRect();
+    titleText?.place({ x: 0, y: (logo.top + logo.height / 2 - window.innerHeight / 2) / sc.scale, zoom: portrait ? 0.7 : 1 });
+
+    const area = titleCharaArea.getBoundingClientRect();
+    if (area.width <= 0 || area.height <= 0) return;
+    const toGameX = (px) => (px - window.innerWidth / 2) / sc.scale;
+    const toGameY = (px) => (px - window.innerHeight / 2) / sc.scale;
+    if (!portrait) {
+        // 横画面: キャラは枠の左端に寄せ、枠の上端から画面の下端まで使って大きく出す（画面の下に接する）。
+        // キャラ変更ボタンはキャラに重ねて、キャラの左右中央に置く
+        const sizePx = Math.min(window.innerHeight - area.top, area.width);
+        const size = sizePx / sc.scale;
+        const x = toGameX(area.left) + size / 2;
+        titleCharacter.place({ x: x, y: sc.halfHeight - size / 2, width: size, height: size });
+        restoreLayout([titleCharacter.voiceTextOverlay]);
+        changeCharaButton.style.marginLeft = '0px';
+        const button = changeCharaButton.getBoundingClientRect();
+        const target = window.innerWidth / 2 + x * sc.scale - button.width / 2;
+        changeCharaButton.style.marginLeft = `${Math.max(0, target - button.left)}px`;
+        return;
+    }
+    changeCharaButton.style.marginLeft = '';
+    // 縦画面: キャラは枠の左右中央。下のキャラ変更ボタンの行まで使って大きく出す（ボタンはキャラに重なってよい）
+    const button = changeCharaButton.getBoundingClientRect();
+    const bottom = button.height > 0 ? Math.max(area.bottom, button.bottom) : area.bottom;
+    const size = Math.min(bottom - area.top, area.width) / sc.scale;
+    const x = toGameX(area.left + area.width / 2);
+    const y = toGameY(bottom) - size / 2;
+    titleCharacter.place({ x: x, y: y, width: size, height: size });
+    // セリフは画面の左右中央、キャラの下の方に出す。キャラ変更ボタンにはかからないよう、ボタンの上端より上に収める
+    let voiceY = size * 0.4;
+    if (button.height > 0) voiceY = Math.min(voiceY, toGameY(button.top) - 0.075 - y);
+    titleCharacter.voiceTextOverlay.place({ x: -x, y: voiceY });
+}
+
+// キャラ変更の画面でも、キャラをタイトル画面と同じ位置・大きさに置く。
+// タイトルの HTML を見えない状態で並べて、タイトル画面と同じ計算で置く。戻り値はタイトル文字の位置（ゲーム内座標の y）
+function placeCharacterAsTitle(character, portrait, sc) {
+    titleCharacter = character;
+    const hidden = titleUI.style.display === 'none';
+    if (hidden) {
+        titleUI.style.visibility = 'hidden';
+        titleUI.style.display = '';
+    }
+    layoutTitle(portrait, sc);
+    const logo = titleLogo.getBoundingClientRect();
+    const logoY = (logo.top + logo.height / 2 - window.innerHeight / 2) / sc.scale;
+    if (hidden) {
+        titleUI.style.display = 'none';
+        titleUI.style.visibility = '';
+    }
+    return logoY;
+}
+
 export function createTitleScene(savedTitleCharacter = null, loadNameInput = true) {
     clearTitleHTML();
 
     setSceneType('title');
-    let titleScene = new Scene();
-    const backgroundImageUI = new BackgroundImageUI({ image: title_img });
-    titleScene.add(backgroundImageUI);
-    cpuLevelOverlay.visible = false;
-    languageOverlay.visible = false;
+    const titleScene = new Scene();
+    titleScene.add(new BackgroundImageUI({ image: title_img }));
+    titleText = new TextUI({
+        text: () => `${strings['title']}`,
+        x: 0,
+        y: -0.3,
+        size: 0.12,
+        colors: ["#c2a34f", "#000000", "#ffffff"]
+    });
+    titleScene.add(titleText);
 
     const playBGMOnce = () => {
         if (audioManager.currentBGM === null) {
@@ -226,94 +490,11 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
     };
     document.addEventListener('click', playBGMOnce);
 
-    function startOnlineMatch() {
-        setPlayerName(nameInput.value.trim());
-        localStorage.setItem("playerName", playerName);
-        if (playerName == "") setPlayerName(`${strings['anonymous']}`);
-
-        clearTitleHTML();
-        titleScene.remove(joinRoomButton);
-        titleScene.remove(makeRoomButton);
-        titleScene.remove(cpuButton);
-        titleScene.remove(cpuLevelOverlay);
-        titleScene.remove(languageOverlay);
-        titleScene.remove(charaSelectButton);
-        titleScene.remove(playButton);
-        titleScene.remove(langButton);
-        titleScene.remove(historyButton);
-        titleScene.add(matchingText);
-        titleScene.add(loading);
-        titleScene.add(cancelMatchButton);
-
-
-
-        connectToServer().then(socket => {
-            socket.emit("requestMatch", { name: playerName, characterName: selectedCharacterName, player_id: player_id });
-        }).catch(err => {
-            console.error("Failed to connect for matching:", err);
-            alert("failed to connect server");
-            setScene(createTitleScene());
-        });
-    }
-
-    function makeRoomSubmit() {
-        setPlayerName(nameInput.value.trim());
-        localStorage.setItem("playerName", playerName);
-        if (playerName == "") setPlayerName(`${strings['anonymous']}`);
-
-        connectToServer().then(socket => {
-            socket.emit("createRoom", { name: playerName, characterName: selectedCharacterName, player_id: player_id });
-        }).catch(err => {
-            console.error("Failed to connect for creating room:", err);
-            alert("failed to connect server");
-            setScene(createTitleScene());
-        });
-    }
-
-    function joinRoomSubmit() {
-        setPlayerName(nameInput.value.trim());
-        localStorage.setItem("playerName", playerName);
-        if (playerName == "") setPlayerName(`${strings['anonymous']}`);
-        const roomId = roomIdInput.value.trim().toUpperCase();
-        if (roomId) {
-            connectToServer().then(socket => {
-                socket.emit("joinRoom", { roomId: roomId, name: playerName, characterName: selectedCharacterName, player_id: player_id });
-            }).catch(err => {
-                console.error("Failed to connect for joining room:", err);
-                alert("failed to connect server");
-            });
-        } else {
-            roomJoinFailed();
-        }
-    }
-
-    function charaSelectSubmit() {
-        setScene(createCharacterSelectScene(titleCharacter));
-    }
-
     updateRanking();
+    renderTitleStatus();
+    titleAnnounce.textContent = serverStatus.announcement ?? '';
 
-    const title = new TextUI({
-        text: () => `${strings['title']}`,
-        x: 0,
-        y: -0.3,
-        size: 0.12,
-        colors: ["#c2a34f", "#000000", "#ffffff"]
-    });
-    titleScene.add(title);
-
-    const announce = new TextUI({
-        text: () => `${serverStatus.announcement}`,
-        x: -0.7,
-        y: -0.48,
-        size: 0.025,
-        colors: ["#ffffff", "#000000", "#00000000"],
-        position: "left",
-        textBaseline: "top"
-    });
-    titleScene.add(announce);
-
-    let titleCharacter = savedTitleCharacter;
+    titleCharacter = savedTitleCharacter;
     if (titleCharacter === null) {
         titleCharacter = new CharacterImageUI({
             image: selectedCharacterName,
@@ -325,417 +506,26 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
         });
         titleCharacter.init();
     }
+    // キャラ変更の画面（横画面）はこの値を基準に戻すので、置き直す前に覚えておく
+    rememberLayout([titleCharacter]);
+    rememberLayout([titleCharacter.voiceTextOverlay], ['x', 'y']);
     titleScene.add(titleCharacter);
-
-    const playButton = new ButtonUI({
-        text: `${strings['online-match']}`,
-        x: 0.65,
-        y: 0.4,
-        height: 0.1,
-        width: 0.4,
-        color: '#df398c',
-        textSize: 0.05,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: startOnlineMatch
-    });
-    titleScene.add(playButton);
-
-    const makeRoomButton = new ButtonUI({
-        text: `${strings['make-room']}`,
-        x: 0.78,
-        y: 0.3,
-        height: 0.05,
-        width: 0.12,
-        color: '#3241c9',
-        textSize: 0.025,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: makeRoomSubmit
-    });
-    titleScene.add(makeRoomButton);
-
-    const joinRoomButton = new ButtonUI({
-        text: `${strings['join-room']}`,
-        x: 0.64,
-        y: 0.3,
-        height: 0.05,
-        width: 0.12,
-        color: '#3241c9',
-        textSize: 0.025,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: joinRoomSubmit
-    });
-    titleScene.add(joinRoomButton);
-
-    const cpuButton = new ButtonUI({
-        text: `${strings['cpu-match']}`,
-        x: 0.78,
-        y: 0.24,
-        height: 0.05,
-        width: 0.12,
-        color: '#3241c9',
-        textSize: 0.025,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: cpuButtonSubmit
-    });
-    titleScene.add(cpuButton);
-
-    const langButton = new ButtonUI({
-        text: `${strings['language']}`,
-        x: -0.8,
-        y: -0.46,
-        height: 0.05,
-        width: 0.12,
-        color: '#3241c9',
-        textSize: 0.025,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => {
-            languageOverlay.visible = !languageOverlay.visible;
-        }
-    });
-    titleScene.add(langButton);
-
-    const winConditionOverlay = new OverlayUI({
-        x: 0,
-        y: 0,
-        height: 0.42,
-        width: 1,
-        visible: false
-    });
-    const winConditionTitle = new TextUI({
-        text: () => `${strings['win-condition']}`,
-        x: 0,
-        y: -0.14,
-        size: 0.06,
-        colors: ['#ffffffff', '#000000ff', '#00000000'],
-    });
-    const winConditionText = new TextUI({
-        text: () => `${strings['rule-text']}`,
-        x: -0.26,
-        y: -0.06,
-        size: 0.025,
-        colors: ['#ffffffff', '#00000000', '#00000000'],
-        position: 'left'
-    });
-    const closeWinConditionButton = new ButtonUI({
-        text: `${strings['close']}`,
-        x: 0,
-        y: 0.16,
-        width: 0.15,
-        height: 0.05,
-        color: '#3241c9',
-        textSize: 0.026,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => showHelp(null)
-    });
-
-    const pieceHelpOverlay = new OverlayUI({
-        x: 0,
-        y: 0,
-        height: 0.42,
-        width: 1,
-        visible: false
-    });
-
-    const pieceListTitle = new TextUI({
-        text: () => `${strings['piece-list']}`,
-        x: 0,
-        y: -0.14,
-        size: 0.06,
-        colors: ['#ffffffff', '#000000ff', '#00000000'],
-    });
-
-
-
-    const closePieceHelpButton = new ButtonUI({
-        text: `${strings['close']}`,
-        x: 0,
-        y: 0.16,
-        width: 0.15,
-        height: 0.05,
-        color: '#3241c9',
-        textSize: 0.026,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => showHelp(null)
-    });
-
-
-
-    const ctrlOverlay = new OverlayUI({
-        x: 0,
-        y: 0,
-        height: 0.42,
-        width: 1,
-        visible: false
-    });
-
-    const ctrlTitle = new TextUI({
-        text: () => `${strings['manual']}`,
-        x: 0,
-        y: -0.14,
-        size: 0.06,
-        colors: ['#ffffffff', '#000000ff', '#00000000'],
-    });
-
-    const ctrlText = new TextUI({
-        text: () => `${isTouchDevice ? strings['manual-text-touch'] : strings['manual-text']}`,
-        x: -0.15,
-        y: -0.06,
-        size: 0.025,
-        colors: ['#ffffffff', '#00000000', '#00000000'],
-        position: 'left'
-    });
-
-    const closeCtrlButton = new ButtonUI({
-        text: `${strings['close']}`,
-        x: 0,
-        y: 0.16,
-        width: 0.15,
-        height: 0.05,
-        color: '#3241c9',
-        textSize: 0.026,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => showHelp(null)
-    });
-
-    const pieceListButton = new ButtonUI({
-        text: `${strings['piece-list']}`,
-        x: -0.4,
-        y: -0.15,
-        width: 0.15,
-        height: 0.05,
-        color: '#3241c9',
-        textSize: 0.026,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => showHelp(pieceHelpOverlay)
-    });
-
-    const ctrlButton = new ButtonUI({
-        text: `${strings['manual']}`,
-        x: -0.4,
-        y: -0.09,
-        height: 0.05,
-        width: 0.15,
-        color: '#3241c9',
-        textSize: 0.026,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => showHelp(ctrlOverlay)
-    });
-
-    const winConditionButton = new ButtonUI({
-        text: `${strings['win-condition']}`,
-        x: -0.4,
-        y: -0.03,
-        width: 0.15,
-        height: 0.05,
-        color: '#3241c9',
-        textSize: 0.026,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => showHelp(winConditionOverlay)
-    });
-
-    pieceHelpOverlay.add(pieceListButton);
-    ctrlOverlay.add(pieceListButton);
-    winConditionOverlay.add(pieceListButton);
-
-    pieceHelpOverlay.add(ctrlButton);
-    ctrlOverlay.add(ctrlButton);
-    winConditionOverlay.add(ctrlButton);
-
-    pieceHelpOverlay.add(winConditionButton);
-    ctrlOverlay.add(winConditionButton);
-    winConditionOverlay.add(winConditionButton);
-
-    pieceHelpOverlay.add(pieceListTitle);
-    pieceHelpOverlay.add(closePieceHelpButton);
-
-    ctrlOverlay.add(closeCtrlButton);
-    ctrlOverlay.add(ctrlTitle);
-    ctrlOverlay.add(ctrlText);
-
-    winConditionOverlay.add(winConditionTitle);
-    winConditionOverlay.add(winConditionText);
-    winConditionOverlay.add(closeWinConditionButton);
-
-    const pieceHelpUIs = [];
-    let typeX = 0;
-    for (const type of KOMADAI_TYPES) {
-        const pieceHelp = new PieceHelpUI({
-            pieceType: type,
-            x: -0.24 + typeX,
-            y: -0.04,
-            width: 0.08,
-            height: 0.08
-        });
-        typeX += 0.08;
-        pieceHelpOverlay.add(pieceHelp);
-        pieceHelpUIs.push({ ui: pieceHelp, col: pieceHelpUIs.length % KOMADAI_TYPES.length, row: 0 });
-    }
-    typeX = 0;
-    for (const type of PROMOTE_TYPES) {
-        if (type !== '') {
-            const pieceHelp = new PieceHelpUI({
-                pieceType: type,
-                x: -0.24 + typeX,
-                y: 0.06,
-                width: 0.08,
-                height: 0.08
-            });
-
-            pieceHelpOverlay.add(pieceHelp);
-            pieceHelpUIs.push({ ui: pieceHelp, col: PROMOTE_TYPES.indexOf(type), row: 1 });
-        }
-        typeX += 0.08;
-    }
-
-    // ルール画面（駒一覧・操作方法・勝利条件）を切り替える。null で閉じる。
-    // 名前・部屋ID の入力欄（キャンバスより手前に出るHTML）とは重ならない位置に置く（縦画面は onLayout で調整）
-    function showHelp(target) {
-        for (const overlay of [pieceHelpOverlay, ctrlOverlay, winConditionOverlay]) {
-            overlay.visible = overlay === target;
-        }
-    }
-    // ルール画面の枠内のタップは、奥にあるボタン（キャラ変更など）に渡さない
-    for (const overlay of [pieceHelpOverlay, ctrlOverlay, winConditionOverlay]) {
-        overlay.onSearchMouseDown = () => true;
-    }
-
-    const ruleButton = new ButtonUI({
-        text: `${strings['rule']}`,
-        x: 0.78,
-        y: 0.02,
-        height: 0.05,
-        width: 0.12,
-        color: '#3241c9',
-        textSize: 0.025,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => showHelp(pieceHelpOverlay)
-    });
-
-    titleScene.add(ruleButton);
-
-    const historyButton = new ButtonUI({
-        text: `${strings['history']}`,
-        x: 0.64,
-        y: 0.02,
-        height: 0.05,
-        width: 0.12,
-        color: '#3241c9',
-        textSize: 0.025,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => setScene(createHistoryScene())
-    });
-    titleScene.add(historyButton);
-
-    const charaSelectButton = new ButtonUI({
-        text: `${strings['change-character']}`,
-        x: -0.58,
-        y: 0.45,
-        height: 0.06,
-        width: 0.16,
-        color: '#3241c9',
-        textSize: 0.028,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => {
-            titleCharacter.touchable = false;
-            charaSelectSubmit();
-            const cantouchCharacter = () => {
-                titleCharacter.touchable = true;
-            }
-            document.addEventListener('pointerup', cantouchCharacter, { once: true });
-        }
-    });
-
-    titleScene.add(rankingOverlay);
-    titleScene.add(charaSelectButton);
-    titleScene.add(statusOverlay);
-    titleScene.add(cpuLevelOverlay);
-    titleScene.add(languageOverlay);
-
-    titleScene.add(pieceHelpOverlay);
-    titleScene.add(ctrlOverlay);
-    titleScene.add(winConditionOverlay);
 
     if (loadNameInput) {
         const savedName = localStorage.getItem("playerName");
-        if (savedName) {
-            nameInput.value = savedName;
-        }
+        if (savedName) nameInput.value = savedName;
     }
-
     roomIdInput.value = '';
+
     discordButton.style.display = "block";
-    roomIdInput.style.display = "flex";
-    nameInput.style.display = "flex";
+    titleUI.style.display = '';
+    setLevelsOpen(cpuMatchButton, cpuLevels, false);
+    titleMatching.hidden = isMatching(); // setMatching で必ず表示を切り替えさせる
+    setMatching(isMatching());
+    renderLive();
+    refreshLiveStatus();
 
-    const helpOverlays = [pieceHelpOverlay, ctrlOverlay, winConditionOverlay];
-    const helpNavButtons = [pieceListButton, ctrlButton, winConditionButton];
-    const helpTitles = [pieceListTitle, ctrlTitle, winConditionTitle];
-    const helpCloseButtons = [closePieceHelpButton, closeCtrlButton, closeWinConditionButton];
-
-    // 横画面の配置はコンストラクタで指定した値。縦画面から戻すときのために覚えておく
-    const landscapeUIs = [
-        title, announce, titleCharacter, playButton, makeRoomButton, joinRoomButton, cpuButton, langButton, ruleButton, historyButton,
-        charaSelectButton, languageOverlay, cpuLevelOverlay, statusOverlay, cancelMatchButton, rankingOverlay,
-        matchingText, loading, ...helpOverlays, ...helpNavButtons, ...helpTitles, ...helpCloseButtons,
-        winConditionText, ctrlText, ...pieceHelpUIs.map(p => p.ui)
-    ];
-    rememberLayout(landscapeUIs);
-    // セリフ枠は表示中に幅が変わるので位置だけ覚える
-    rememberLayout([titleCharacter.voiceTextOverlay], ['x', 'y']);
-
-    titleScene.onLayout = (portrait, sc) => {
-        if (!portrait) {
-            // 横画面: コンストラクタで指定した配置に戻す
-            restoreLayout(landscapeUIs);
-            restoreLayout([titleCharacter.voiceTextOverlay]);
-            return;
-        }
-
-        // 縦画面: 上から ボタン列 → お知らせ → タイトル → キャラ(+ランキング) → 名前 → 各種ボタン
-        const top = -Math.max(0.889, Math.min(sc.halfHeight, 1.1));
-        // 縦長の端末では下側のまとまりを余った高さの分だけ下げる（HTML入力欄も main.js で同じだけ下げる）
-        const extra = -top - 0.889;
-        const dy = extra * 0.6;
-        sc.htmlOffsetY = dy;
-        const smallZoom = 1.7; // 0.12×0.05 のボタンを指で押せる大きさにする
-        langButton.place({ x: -0.5 + 0.02 + 0.06 * smallZoom, y: top + 0.07, zoom: smallZoom });
-        ruleButton.place({ x: -0.5 + 0.04 + 0.18 * smallZoom, y: top + 0.07, zoom: smallZoom });
-        languageOverlay.place({ x: langButton.x, y: top + 0.12 + 0.065 * smallZoom, zoom: smallZoom });
-        announce.place({ x: -0.47, y: top + 0.15, zoom: 1.4 });
-        title.place({ x: 0, y: top + 0.33, zoom: 0.7 });
-
-        titleCharacter.place({ x: -0.12, y: -0.1 + dy * 0.5, width: 0.76 + extra * 0.4, height: 0.76 + extra * 0.4 });
-        titleCharacter.voiceTextOverlay.place({ x: 0.12, y: 0.3 });
-        rankingOverlay.place({ x: 0.3, y: -0.2 + dy * 0.5, zoom: 1.25 });
-
-        statusOverlay.place({ x: -0.3, y: 0.33 + dy, zoom: 1.4 });
-        charaSelectButton.place({ x: 0.28, y: 0.33 + dy, zoom: 1.4 });
-        // 上端の列は Discord ボタン（HTML）で埋まるので、キャラ変更の上に置く
-        historyButton.place({ x: 0.28, y: 0.33 + dy - 0.1, zoom: 1.4 });
-        // 0.47 は名前入力欄（main.js の PORTRAIT_NAME_INPUT_Y）
-        const rowY = PORTRAIT_ROOM_INPUT.y + dy;
-        cpuButton.place({ x: -0.37, y: rowY, zoom: smallZoom });
-        joinRoomButton.place({ x: 0.11, y: rowY, zoom: smallZoom });
-        makeRoomButton.place({ x: 0.35, y: rowY, zoom: smallZoom });
-        cpuLevelOverlay.place({ x: 0, y: 0.0, zoom: smallZoom });
-        playButton.place({ x: 0, y: 0.76 + dy, zoom: 1.5 });
-        cancelMatchButton.place({ x: 0, y: 0.76 + dy, zoom: 1.5 });
-        matchingText.place({ x: -0.05, y: 0.58 + dy, zoom: 1.2 });
-        loading.place({ x: 0.3, y: 0.58 + dy, zoom: 1.2 });
-
-        // ヘルプ画面: ナビボタンを上に横並び、本文は大きめの文字で折り返す。
-        // 上端のボタン列と名前入力欄（HTMLでキャンバスより手前に出る）の間の中央に置き、入力欄と重ねない
-        const helpAreaTop = top + 0.13;
-        const helpAreaBottom = PORTRAIT_NAME_INPUT_Y - 0.035 - 0.02 + dy; // 名前入力欄の上端の少し上
-        helpOverlays.forEach(o => o.place({ y: (helpAreaTop + helpAreaBottom) / 2, height: 0.8 }));
-        helpNavButtons.forEach((b, i) => b.place({ x: (i - 1) * 0.31, y: -0.33, zoom: 1.8 }));
-        helpTitles.forEach(t => t.place({ y: -0.21, zoom: 1 }));
-        helpCloseButtons.forEach(b => b.place({ y: 0.33, zoom: 1.8 }));
-        winConditionText.place({ x: -0.45, y: -0.13, zoom: 1.5, maxWidth: 0.9 / 1.5 });
-        ctrlText.place({ x: -0.45, y: -0.13, zoom: 1.5, maxWidth: 0.9 / 1.5 });
-        const pieceZoom = 1.25;
-        pieceHelpUIs.forEach(({ ui, col, row }) => ui.place({ x: (col - 4) * 0.08 * pieceZoom, y: row === 0 ? -0.03 : 0.09, zoom: pieceZoom }));
-    };
+    titleScene.onLayout = layoutTitle;
     return titleScene;
 }
 
@@ -817,39 +607,37 @@ export function createCharacterSelectScene(titleCharacter) {
         }
     });
 
-    // 横画面の配置はコンストラクタで指定した値。縦画面から戻すときのために覚えておく（顔アイコンは作成時に追加）
-    const landscapeUIs = [titleCharacter, selectTitle, overlayUI, profileOverlayUI, characterProfileText, charaSubmitButton];
+    // 横画面の配置はコンストラクタで指定した値。縦画面から戻すときのために覚えておく（顔アイコンは作成時に追加）。
+    // キャラはタイトル画面と同じ位置に置くので含めない
+    const landscapeUIs = [selectTitle, overlayUI, profileOverlayUI, characterProfileText, charaSubmitButton];
     rememberLayout(landscapeUIs);
-    rememberLayout([titleCharacter.voiceTextOverlay], ['x', 'y']);
     const faceUIs = [];
     selectScene.onLayout = (portrait, sc) => {
+        // キャラ（とセリフ）はタイトル画面と同じ位置・大きさ
+        const logoY = placeCharacterAsTitle(titleCharacter, portrait, sc);
         if (!portrait) {
-            // 横画面: コンストラクタで指定した配置に戻す
+            // 横画面: キャラは左、選択画面は右（コンストラクタで指定した配置）
             restoreLayout(landscapeUIs);
-            restoreLayout([titleCharacter.voiceTextOverlay]);
             return;
         }
-        // キャラは y=-0.55・大きさ 0.62 を基本にし、上端が画面上端のボタン列（Discord・音量設定）にかかる
-        // 縦の短い端末でだけ、かからない位置まで下げる。下げた分だけ下側のまとまり（見出し〜プロフィール）も下げる
-        const top = -sc.halfHeight;
-        const charaSize = 0.62;
-        const charaY = Math.max(-0.55, top + 0.13 + charaSize / 2);
-        const dy = charaY + 0.55;
-        titleCharacter.place({ x: 0, y: charaY, width: charaSize, height: charaSize });
-        titleCharacter.voiceTextOverlay.place({ x: 0, y: 0.22 + dy });
-        selectTitle.place({ x: 0, y: -0.17 + dy, zoom: 0.9 });
+        // 縦画面: 見出しはタイトル画面のタイトル文字の位置。キャラの下（タイトル画面で対局パネルがある辺り）に
+        // 顔の一覧〜プロフィールを並べる。以下の y は、キャラの下端を -0.14 としたときの値。画面の下に収まらなければ上にずらす
+        const profileZoom = 1.2;
+        const profileMaxWidth = 0.92 / profileZoom;
+        const profilePadding = 0.022;
+        const lines = maxProfileLines(characterProfileText.size, profileZoom, profileMaxWidth);
+        const lineHeight = characterProfileText.size * profileZoom * (1 + characterProfileText.lineoffset);
+        const profileHeight = profilePadding * 2 + (lines - 1) * lineHeight + characterProfileText.size * profileZoom;
+        const charaBottom = titleCharacter.y + titleCharacter.height / 2;
+        let dy = charaBottom + 0.14;
+        dy -= Math.max(0, 0.51 + dy + profileHeight - (sc.halfHeight - 0.02));
+        selectTitle.place({ x: 0, y: logoY, zoom: 1.3 });
         overlayUI.place({ x: 0, y: 0.09 + dy, height: 0.42 });
         const faceZoom = 1.15;
         faceUIs.forEach(({ ui, col }) => ui.place({ x: (col - 1) * 0.32, y: 0.03 + dy, zoom: faceZoom }));
         charaSubmitButton.place({ x: 0, y: 0.4 + dy, zoom: 1.6 });
         // プロフィール枠は、今の言語でいちばん長いキャラ説明が収まる高さにする（キャラを切り替えても枠の大きさは変えない）
-        const profileZoom = 1.2;
-        const profileMaxWidth = 0.92 / profileZoom;
         const profileTop = 0.51 + dy;
-        const profilePadding = 0.022;
-        const lines = maxProfileLines(characterProfileText.size, profileZoom, profileMaxWidth);
-        const lineHeight = characterProfileText.size * profileZoom * (1 + characterProfileText.lineoffset);
-        const profileHeight = profilePadding * 2 + (lines - 1) * lineHeight + characterProfileText.size * profileZoom;
         profileOverlayUI.place({ x: 0, y: profileTop + profileHeight / 2, height: profileHeight });
         characterProfileText.place({ x: -0.46, y: profileTop + profilePadding, zoom: profileZoom, textBaseline: 'top', maxWidth: profileMaxWidth, reflow: true });
     };
@@ -934,59 +722,4 @@ export function createCharacterSelectScene(titleCharacter) {
     discordButton.style.display = "block";
 
     return selectScene;
-}
-
-export function roomJoinFailed() {
-    console.log("roomJoinFailed");
-    const roomJoinFailedOverlay = new OverlayUI({
-        x: 0.5,
-        y: 0.24,
-        width: 0.26,
-        height: 0.04,
-        color: '#187a1c'
-    });
-    const roomJoinFailedtext = new TextUI({
-        text: () => `${strings['join-failed']}`,
-        x: 0,
-        y: 0.002,
-        size: 0.025,
-        colors: ['#ffffff', '#00000000', '#00000000']
-    });
-    roomJoinFailedOverlay.add(roomJoinFailedtext);
-    if (scene && scene.portrait) {
-        roomJoinFailedOverlay.place({ x: 0, y: 0.66, zoom: 1.6 });
-    }
-    setTimeout(() => {
-        scene.add(roomJoinFailedOverlay);
-    }, 100);
-    setTimeout(() => {
-        scene.remove(roomJoinFailedOverlay);
-    }, 2500);
-}
-
-function cpuButtonSubmit() {
-    cpuLevelOverlay.visible = !cpuLevelOverlay.visible;
-}
-
-function cpuLevelSubmit(level) {
-    setPlayerName(nameInput.value.trim());
-    localStorage.setItem("playerName", playerName);
-    if (playerName == "") setPlayerName(`${strings['anonymous']}`);
-    clearTitleHTML();
-    const now = performance.now();
-    setScene(createPlayScene([playerName], null, selectedCharacterName, [`CPU${strings['level']}${level}`], null, null, null, 'cpu', now, 'sente', { sente: MOVETIME, gote: MOVETIME }, false, level));
-}
-
-export function updateRanking() {
-    if (serverStatus && serverStatus.topPlayers) {
-        for (let i = 0; i < 10; i++) {
-            if (serverStatus.topPlayers[i]) {
-                rankingOverlay.childs[i].text = () => {
-                    return `${Math.round(serverStatus.topPlayers[i].rating)} ${serverStatus.topPlayers[i].name}`;
-                }
-            } else {
-                rankingOverlay.childs[i].text = () => ``;
-            }
-        }
-    }
 }
