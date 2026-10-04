@@ -829,6 +829,9 @@ function normalAlgolysm(currentBoard, servertime) {
         }
     }
 
+    // 弱めのレベル：反射（取る・逃げる・取り返す）をときどき見送る
+    if (REFLEX_MISS_RATE > 0 && Math.random() < REFLEX_MISS_RATE) return false;
+
     //放置すると取られる駒を検索
     for (const move of playerLegalMoves) {
         const res = board.getCanMovePieceIgnoreTime(move.x, move.y, move.nx, move.ny, move.nari, move.teban, servertime);
@@ -1138,7 +1141,8 @@ function randomMoveNoBigDanger(currentBoard, servertime) {
 
     const toKingMoves = [];
     for (const move of noBigDanger) {
-        const toKing = getToKing(currentBoard, move);
+        // 相手玉に近い手ほど選ばれやすい（入門レベルは偏りを弱めて攻めを鈍くする）
+        const toKing = 1 + Math.round((getToKing(currentBoard, move) - 1) * TO_KING_WEIGHT);
         for (let i = 0; i < toKing; i++) {
             toKingMoves.push(move);
         }
@@ -1183,6 +1187,12 @@ let SEARCH_MOVE_LIMIT = 16;
 let SEARCH_DEEP_MOVE_LIMIT = 10;
 let SEARCH_TIME_LIMIT_MS = 250;
 let PERCEPTION_DELAY_MS = 300; // 盤面変化を認識するまでの遅延（人間の知覚に相当）
+// 反射層の見逃し率（レベル1〜4の弱め用）：取る・逃げる・取り返すなどの反射をこの確率で見送る（玉を取る手は除く）
+let REFLEX_MISS_RATE = 0;
+// ランダムな手の「相手玉に近い手」への偏りの強さ（1 = 偏りあり、0 = 偏りなし）
+let TO_KING_WEIGHT = 1;
+// 読みのあるレベルで、読んだ最善手の代わりに「大損しないランダムな手」を指す確率（レベル3・4の弱め用）
+let SEARCH_RANDOM_RATE = 0;
 const WIN_SCORE = 1000000;
 
 function cloneMove(move) {
@@ -1727,6 +1737,10 @@ function startSearchCpu(reactiveInterval, searchInterval, searchDelayRand, combo
         setTimeout(() => {
             if (!canDecide()) return;
             const servertime = startTime + performance.now();
+            if (SEARCH_RANDOM_RATE > 0 && Math.random() < SEARCH_RANDOM_RATE) {
+                randomMoveNoBigDanger(board, servertime);
+                return;
+            }
             const best = findBestMove(servertime);
             if (best && best.bestMove !== null) {
                 postCpuMove(best.bestMove);
@@ -1747,9 +1761,11 @@ function startSearchCpu(reactiveInterval, searchInterval, searchDelayRand, combo
     }, searchInterval);
 }
 
-//レベル1：反応がかなり遅く、読みなし（入門向け）
+//レベル1：反応がかなり遅く、読みなし。反射を半分見逃し、攻めも鈍い（将棋のルールを知っていれば勝てる程度）
 function level1cpu() {
-    PERCEPTION_DELAY_MS = 600;
+    PERCEPTION_DELAY_MS = 800;
+    REFLEX_MISS_RATE = 0.5;
+    TO_KING_WEIGHT = 0.2;
     setInterval(() => {
         if (!canDecide()) return;
         const servertime = startTime + performance.now();
@@ -1759,14 +1775,16 @@ function level1cpu() {
     }, 3000);
 }
 
-//レベル2：反応はそこそこ、読みなし
+//レベル2：反応は遅め、読みなし。反射をときどき見逃し、攻めはやや鈍い
 function level2cpu() {
-    PERCEPTION_DELAY_MS = 500;
+    PERCEPTION_DELAY_MS = 700;
+    REFLEX_MISS_RATE = 0.4;
+    TO_KING_WEIGHT = 0.35;
     setInterval(() => {
         if (!canDecide()) return;
         const servertime = startTime + performance.now();
         normalAlgolysm(board, servertime);
-    }, 800);
+    }, 1500);
     setInterval(() => {
         const rand = 1000 * Math.random();
         setTimeout(() => {
@@ -1774,7 +1792,7 @@ function level2cpu() {
             const servertime = startTime + performance.now();
             randomMoveNoBigDanger(board, servertime);
         }, rand);
-    }, 1800);
+    }, 2500);
 }
 
 // ===== 反応速度の設計 =====
@@ -1788,27 +1806,33 @@ function level2cpu() {
 // このゲームは指し手の精度だけでなく速度が強さに直結するため、
 // レベル差は「読みの深さ」と「速度（反応・思考サイクル・連続着手）」の両方でつける。
 // レベル5だけが人間上限の速度で動き、4以下は意図的に速度を落として突出させる。
+// レベル1〜4は、隣り合うレベル同士のCPU対戦で上のレベルが8〜9割勝つ程度の、ほぼ一定の段差にそろえてある
+// （反射の見逃し率・読んだ手の代わりにランダムな手を指す率・反応間隔で調整。scripts/cpu_selfplay で測定）。
 
-//レベル3：浅い読み（2手）＋遅い反応（約1200ms）・遅いサイクル
+//レベル3：浅い読み（2手）＋遅い反応・遅いサイクル。反射を半分見逃し、読んだ手を指すのは2割（残りは大損しない手）
 function level3cpu() {
     SEARCH_MAX_DEPTH = 2;
     SEARCH_TIME_LIMIT_MS = 100;
     ROOT_MOVE_LIMIT = 16;
     SEARCH_MOVE_LIMIT = 12;
     SEARCH_DEEP_MOVE_LIMIT = 8;
-    PERCEPTION_DELAY_MS = 600;
-    startSearchCpu(600, 2000, 500, 600, 1100);
+    PERCEPTION_DELAY_MS = 650;
+    REFLEX_MISS_RATE = 0.5;
+    SEARCH_RANDOM_RATE = 0.8;
+    startSearchCpu(650, 2000, 500, 600, 1100);
 }
 
-//レベル4：そこそこの読み（3手）＋ゆっくりした人間の反応（約850ms）
+//レベル4：そこそこの読み（3手）＋ゆっくりした人間の反応。反射をときどき見逃し、読んだ手を指すのは半分
 function level4cpu() {
     SEARCH_MAX_DEPTH = 3;
     SEARCH_TIME_LIMIT_MS = 150;
     ROOT_MOVE_LIMIT = 18;
     SEARCH_MOVE_LIMIT = 12;
     SEARCH_DEEP_MOVE_LIMIT = 8;
-    PERCEPTION_DELAY_MS = 450;
-    startSearchCpu(400, 1400, 300, 450, 900);
+    PERCEPTION_DELAY_MS = 480;
+    REFLEX_MISS_RATE = 0.35;
+    SEARCH_RANDOM_RATE = 0.5;
+    startSearchCpu(420, 1500, 300, 450, 900);
 }
 
 //レベル5：深い読み（最大6手）＋速い人間相当の反応・速いサイクル
