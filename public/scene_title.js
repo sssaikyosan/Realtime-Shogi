@@ -6,13 +6,11 @@ import { createHistoryScene } from "./scene_history.js";
 import { isMatching, startMatching, stopMatching, onMatchingChange, liveStatus, refreshLiveStatus } from "./matching.js";
 import { serverStatus, title_img, audioManager, setPlayerName, playerName, selectedCharacterName, player_id, setScene, characterFiles, setSelectedCharacterName, connectToServer, strings, all_strings, playerStatus, setStrings, setSceneType, scene, isTouchDevice } from "./main.js";
 import { Scene } from "./scene.js";
-import { OverlayUI, rememberLayout, restoreLayout } from "./ui.js";
+import { rememberLayout, restoreLayout } from "./ui.js";
 import { BackgroundImageUI } from "./ui_background.js";
 import { CharacterImageUI } from "./ui_character.js";
 import { TextUI } from "./ui_text.js";
-import { KOMADAI_TYPES, LANGUAGES, MOVETIME, PIECE_MOVES, PROMOTE_TYPES } from "./const.js";
-import { ImageUI } from "./ui_image.js";
-import { ButtonUI } from "./ui_button.js";
+import { CHARACTER_FOLDER, KOMADAI_TYPES, LANGUAGES, MOVETIME, PIECE_MOVES, PROMOTE_TYPES } from "./const.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -393,25 +391,29 @@ document.addEventListener('keydown', (e) => {
 
 // ---- タイトルシーン ----
 
-// #titleUI を画面の高さいっぱい・ゲーム画面の幅（横画面は 16:9 ぶん、縦画面は画面幅）に合わせ、
-// キャラ（キャンバス）を HTML の空き枠（.tui-chara）に収める
-function layoutTitle(portrait, sc) {
-    titleUI.className = portrait ? 'portrait' : 'landscape';
+// HTML の画面（#titleUI・#charaSelectUI）を、画面の高さいっぱい・ゲーム画面の幅（横画面は 16:9 ぶん、縦画面は画面幅）に合わせる
+function fitScreenBox(box, portrait, sc) {
+    box.className = portrait ? 'portrait' : 'landscape';
     const width = Math.min(window.innerWidth, portrait ? sc.scale : sc.scale * 16 / 9);
     const height = window.innerHeight;
-    titleUI.style.width = `${width}px`;
-    titleUI.style.height = `${height}px`;
-    titleUI.style.left = `${(window.innerWidth - width) / 2}px`;
-    titleUI.style.top = '0px';
+    box.style.width = `${width}px`;
+    box.style.height = `${height}px`;
+    box.style.left = `${(window.innerWidth - width) / 2}px`;
+    box.style.top = '0px';
     // 一番上の列（言語）を、画面右上の音量設定ボタンと同じ高さにそろえる
     // 言語は画面の左端から、音量設定ボタンの右端までと同じ間隔に置く（枠は画面の中央にあるので枠の左端からの位置にする）
     const bar = settingsButton.getBoundingClientRect();
     if (bar.height > 0) {
-        titleUI.style.setProperty('--bar-top', `${bar.top}px`);
-        titleUI.style.setProperty('--bar-height', `${bar.height}px`);
-        titleUI.style.setProperty('--bar-font', getComputedStyle(settingsButton).fontSize);
-        titleUI.style.setProperty('--lang-left', `${window.innerWidth - bar.right - (window.innerWidth - width) / 2}px`);
+        box.style.setProperty('--bar-top', `${bar.top}px`);
+        box.style.setProperty('--bar-height', `${bar.height}px`);
+        box.style.setProperty('--bar-font', getComputedStyle(settingsButton).fontSize);
+        box.style.setProperty('--lang-left', `${window.innerWidth - bar.right - (window.innerWidth - width) / 2}px`);
     }
+}
+
+// #titleUI を画面に合わせ、キャラ（キャンバス）を HTML の空き枠（.tui-chara）に収める
+function layoutTitle(portrait, sc) {
+    fitScreenBox(titleUI, portrait, sc);
 
     const logo = titleLogo.getBoundingClientRect();
     titleText?.place({ x: 0, y: (logo.top + logo.height / 2 - window.innerHeight / 2) / sc.scale, zoom: portrait ? 0.7 : 1 });
@@ -529,14 +531,62 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
     return titleScene;
 }
 
-// 今の言語のキャラ説明を縦画面の幅で折り返したときの最大行数。
-// 縦画面では文字の大きさも折り返し幅も画面幅に比例するので、行数は画面幅によらない（計測用の倍率は任意）
-function maxProfileLines(size, zoom, maxWidth) {
-    const ctx = document.createElement('canvas').getContext('2d');
-    const scale = 1000 * zoom;
-    return Math.max(...characterFiles.map(name => new TextUI({
-        text: () => strings['characters'][name]['profile'], size, maxWidth, reflow: true, colors: ['#ffffff']
-    }).getLines(ctx, size * scale, scale).length));
+// ---- キャラ変更の画面 ----
+// キャラ（キャンバス）はタイトル画面と同じ位置・大きさ。見出し・顔の一覧・決定・プロフィールは HTML（#charaSelectUI）
+
+const charaSelectUI = $("charaSelectUI");
+const charaSelectTitle = $("charaSelectTitle");
+const charaSelectFaces = $("charaSelectFaces");
+const charaSelectSubmit = $("charaSelectSubmit");
+const charaSelectProfile = $("charaSelectProfile");
+// キャラ変更の画面で表示しているキャラ（タイトル画面から引き継ぎ、決定でタイトル画面に戻す）
+let selectCharacter = null;
+
+// 顔の一覧は最初に画面を開いたときに作る（このモジュールの読み込み時は main.js の characterFiles がまだ使えない）
+function buildCharaFaces() {
+    if (charaSelectFaces.children.length > 0) return;
+    for (const name of characterFiles) {
+        const button = document.createElement('button');
+        button.className = 'csel-face';
+        button.dataset.character = name;
+        const img = document.createElement('img');
+        img.src = `/${CHARACTER_FOLDER}/${name}/image_face.png`;
+        img.alt = '';
+        const label = document.createElement('span');
+        button.appendChild(img);
+        button.appendChild(label);
+        button.addEventListener('click', () => chooseCharacter(name));
+        charaSelectFaces.appendChild(button);
+    }
+}
+charaSelectSubmit.addEventListener('click', () => setScene(createTitleScene(selectCharacter, false)));
+
+function chooseCharacter(name) {
+    setSelectedCharacterName(name);
+    localStorage.setItem('selectedCharacter', name);
+    const character = selectCharacter;
+    character.stopVideo();
+    character.image = name;
+    character.init();
+    character.videoElement[0].addEventListener('canplaythrough', () => {
+        if (character.playVideo(0)) {
+            character.spawnVoiceText(0);
+        }
+    }, { once: true });
+    renderCharaSelect();
+}
+
+function renderCharaSelect() {
+    buildCharaFaces();
+    charaSelectTitle.textContent = strings['select-character'];
+    charaSelectSubmit.textContent = strings['submit'];
+    for (const button of charaSelectFaces.children) {
+        const name = button.dataset.character;
+        button.querySelector('span').textContent = strings['characters'][name]['name'];
+        button.classList.toggle('is-selected', name === selectedCharacterName);
+    }
+    // 説明文の改行はキャンバス用に入れたものなので外し、枠の幅で折り返す
+    charaSelectProfile.textContent = strings['characters'][selectedCharacterName]['profile'].replace(/\n/g, '');
 }
 
 // キャラクター選択シーン
@@ -549,177 +599,25 @@ export function createCharacterSelectScene(titleCharacter) {
     };
     document.addEventListener('click', playBGMOnce);
 
-    let selectScene = new Scene();
-    const backgroundImageUI = new BackgroundImageUI({ image: title_img });
-    selectScene.add(backgroundImageUI);
+    clearTitleHTML();
+    const selectScene = new Scene();
+    selectScene.add(new BackgroundImageUI({ image: title_img }));
+    selectScene.add(titleCharacter);
+    selectCharacter = titleCharacter;
 
-    const selectTitle = new TextUI({
-        text: () => `${strings['select-character']}`,
-        x: 0.4,
-        y: -0.23,
-        size: 0.06,
-        colors: ["#bbdd44", "#000000", "#FFFFFF"]
-    });
+    renderCharaSelect();
+    discordButton.style.display = "block";
+    charaSelectUI.style.display = '';
 
-    const charactersPerRow = 3;
-    const characterSize = 0.22;
-    const padding = 0.08;
-    const startX = -(charactersPerRow * (characterSize + padding) - characterSize - padding) / 2 + 0.4;
-    const startY = -0.04;
-
-    let overlayUI = new OverlayUI({
-        x: 0.4,
-        y: -0.07,
-        width: 1,
-        height: 0.45,
-        color: "#111122bb"
-    });
-
-    let profileOverlayUI = new OverlayUI({
-        x: 0.4,
-        y: 0.38,
-        width: 1,
-        height: 0.15,
-        color: "#111122bb"
-    });
-
-    const characterProfileText = new TextUI({
-        text: () => strings['characters'][selectedCharacterName]['profile'],
-        x: -0.05,
-        y: 0.35,
-        size: 0.03,
-        colors: ["#ffffff", "#000000", "#00000000"],
-        textBaseline: 'middle',
-        position: 'left'
-    });
-
-    const charaSubmitButton = new ButtonUI({
-        text: strings['submit'],
-        x: 0.4,
-        y: 0.22,
-        height: 0.07,
-        width: 0.15,
-        color: '#3241c9',
-        textSize: 0.03,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
-        onClick: () => {
-            setScene(createTitleScene(titleCharacter, false));
-        }
-    });
-
-    // 横画面の配置はコンストラクタで指定した値。縦画面から戻すときのために覚えておく（顔アイコンは作成時に追加）。
-    // キャラはタイトル画面と同じ位置に置くので含めない
-    const landscapeUIs = [selectTitle, overlayUI, profileOverlayUI, characterProfileText, charaSubmitButton];
-    rememberLayout(landscapeUIs);
-    const faceUIs = [];
     selectScene.onLayout = (portrait, sc) => {
         // キャラ（とセリフ）はタイトル画面と同じ位置・大きさ
         const logoY = placeCharacterAsTitle(titleCharacter, portrait, sc);
-        if (!portrait) {
-            // 横画面: キャラは左、選択画面は右（コンストラクタで指定した配置）
-            restoreLayout(landscapeUIs);
-            return;
-        }
-        // 縦画面: 見出しはタイトル画面のタイトル文字の位置。キャラの下（タイトル画面で対局パネルがある辺り）に
-        // 顔の一覧〜プロフィールを並べる。以下の y は、キャラの下端を -0.14 としたときの値。画面の下に収まらなければ上にずらす
-        const profileZoom = 1.2;
-        const profileMaxWidth = 0.92 / profileZoom;
-        const profilePadding = 0.022;
-        const lines = maxProfileLines(characterProfileText.size, profileZoom, profileMaxWidth);
-        const lineHeight = characterProfileText.size * profileZoom * (1 + characterProfileText.lineoffset);
-        const profileHeight = profilePadding * 2 + (lines - 1) * lineHeight + characterProfileText.size * profileZoom;
-        const charaBottom = titleCharacter.y + titleCharacter.height / 2;
-        let dy = charaBottom + 0.14;
-        dy -= Math.max(0, 0.51 + dy + profileHeight - (sc.halfHeight - 0.02));
-        selectTitle.place({ x: 0, y: logoY, zoom: 1.3 });
-        overlayUI.place({ x: 0, y: 0.09 + dy, height: 0.42 });
-        const faceZoom = 1.15;
-        faceUIs.forEach(({ ui, col }) => ui.place({ x: (col - 1) * 0.32, y: 0.03 + dy, zoom: faceZoom }));
-        charaSubmitButton.place({ x: 0, y: 0.4 + dy, zoom: 1.6 });
-        // プロフィール枠は、今の言語でいちばん長いキャラ説明が収まる高さにする（キャラを切り替えても枠の大きさは変えない）
-        const profileTop = 0.51 + dy;
-        profileOverlayUI.place({ x: 0, y: profileTop + profileHeight / 2, height: profileHeight });
-        characterProfileText.place({ x: -0.46, y: profileTop + profilePadding, zoom: profileZoom, textBaseline: 'top', maxWidth: profileMaxWidth, reflow: true });
+        fitScreenBox(charaSelectUI, portrait, sc);
+        // 縦画面の見出しは、タイトル画面のタイトル文字と同じ高さ
+        charaSelectTitle.style.top = portrait ? `${window.innerHeight / 2 + logoY * sc.scale}px` : '';
     };
-
-    selectScene.add(overlayUI);
-    selectScene.add(profileOverlayUI);
-    selectScene.add(characterProfileText);
-    selectScene.add(titleCharacter);
-    selectScene.add(selectTitle);
-    selectScene.add(charaSubmitButton);
-
-    characterFiles.forEach((characterName, index) => {
-        const row = Math.floor(index / charactersPerRow);
-        const col = index % charactersPerRow;
-        const x = startX + col * (characterSize + padding);
-        const y = startY + row * (characterSize + padding);
-
-        const faceOverlayUI = new OverlayUI({
-            x: x,
-            y: y,
-            width: characterSize + 0.01,
-            height: characterSize + 0.01,
-            color: "#ffffff",
-            touchable: true
-        });
-
-        const characterUI = new ImageUI({
-            image: characterName + '_face',
-            x: 0,
-            y: 0,
-            width: characterSize,
-            height: characterSize
-        });
-
-        const characterNameText = new TextUI({
-            text: () => strings['characters'][characterName]['name'],
-            x: 0,
-            y: characterSize / 3 + 0.10,
-            size: 0.03,
-            colors: ["#bbdd44", "#000000", "#00000000"],
-            textBaseline: 'bottom',
-            position: 'center'
-        });
-
-        faceOverlayUI.onTouch = () => {
-            faceOverlayUI.width = (characterSize + 0.01) * 1.1;
-            faceOverlayUI.height = (characterSize + 0.01) * 1.1;
-            characterUI.width = characterSize * 1.1;
-            characterUI.height = characterSize * 1.1;
-        }
-
-        faceOverlayUI.unTouch = () => {
-            faceOverlayUI.width = characterSize + 0.01;
-            faceOverlayUI.height = characterSize + 0.01;
-            characterUI.width = characterSize;
-            characterUI.height = characterSize;
-        }
-
-        faceOverlayUI.onMouseDown = () => {
-            setSelectedCharacterName(characterName);
-            localStorage.setItem('selectedCharacter', characterName);
-            titleCharacter.stopVideo();
-            titleCharacter.image = characterName;
-            titleCharacter.init();
-            titleCharacter.videoElement[0].addEventListener('canplaythrough', () => {
-                if (titleCharacter.playVideo(0)) {
-                    titleCharacter.spawnVoiceText(0);
-                }
-            });
-            characterProfileText.text = () => strings['characters'][characterName]['profile'];
-        };
-
-        selectScene.add(faceOverlayUI);
-        faceUIs.push({ ui: faceOverlayUI, col: col });
-        rememberLayout([faceOverlayUI]);
-        landscapeUIs.push(faceOverlayUI);
-        faceOverlayUI.add(characterUI);
-        faceOverlayUI.add(characterNameText);
-    });
-
-    clearTitleHTML();
-    discordButton.style.display = "block";
-
+    selectScene.destroy = () => {
+        charaSelectUI.style.display = 'none';
+    };
     return selectScene;
 }

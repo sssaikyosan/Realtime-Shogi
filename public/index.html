@@ -521,6 +521,140 @@
       z-index: 1;
     }
 
+    /* ---- キャラ変更の画面 ---- */
+    #charaSelectUI {
+      position: absolute;
+      box-sizing: border-box;
+      display: grid;
+      color: var(--ui-text);
+      font-family: sans-serif;
+      z-index: 3;
+      /* キャラ（キャンバス）の上は操作をキャンバスに通す */
+      pointer-events: none;
+    }
+
+    #charaSelectUI > * {
+      pointer-events: auto;
+    }
+
+    /* 横画面: キャラは左（タイトル画面と同じ位置）、右に見出しとパネル */
+    #charaSelectUI.landscape {
+      font-size: calc(var(--u) * 0.024);
+      padding: var(--bar-top, 8px) calc(var(--u) * 0.03) calc(var(--u) * 0.02);
+      grid-template-columns: minmax(0, 1fr) calc(var(--u) * 0.95);
+      grid-template-rows: var(--bar-height, auto) minmax(0, 1fr) auto auto minmax(0, 1fr);
+      grid-template-areas:
+        ".  .    "
+        ".  .    "
+        ".  title"
+        ".  panel"
+        ".  .    ";
+      row-gap: calc(var(--u) * 0.015);
+    }
+
+    /* 縦画面: 見出しはタイトル画面のタイトル文字の位置（top は scene_title.js で設定）、パネルはキャラの下 */
+    #charaSelectUI.portrait {
+      font-size: max(13px, calc(var(--u) * 0.04));
+      padding: var(--bar-top, 8px) 12px 12px;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-areas:
+        "."
+        "panel";
+    }
+
+    @media (pointer: coarse) {
+      #charaSelectUI.landscape {
+        font-size: max(11px, calc(var(--u) * 0.024));
+      }
+    }
+
+    .csel-title {
+      grid-area: title;
+      margin: 0;
+      text-align: center;
+      font-size: 2.4em;
+      font-weight: bold;
+      color: #bbdd44;
+      -webkit-text-stroke: 0.06em #000000;
+      paint-order: stroke fill;
+      text-shadow: 0 0 0.12em #ffffff;
+    }
+
+    #charaSelectUI.portrait .csel-title {
+      position: absolute;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+      font-size: 1.9em;
+    }
+
+    .csel-panel {
+      grid-area: panel;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.7em;
+      padding: 0.9em;
+    }
+
+    .csel-faces {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.8em;
+    }
+
+    .csel-face {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #bbdd44;
+      font-family: inherit;
+      font-size: 1em;
+      text-shadow: 0 0 3px #000000, 0 0 3px #000000;
+      cursor: pointer;
+    }
+
+    .csel-face img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      box-sizing: border-box;
+      border: 0.18em solid #ffffff;
+      border-radius: 0.3em;
+      transition: transform 0.1s;
+    }
+
+    .csel-face:hover img {
+      transform: scale(1.05);
+    }
+
+    .csel-face.is-selected img {
+      border-color: var(--ui-gold);
+      box-shadow: 0 0 0 0.12em var(--ui-gold);
+    }
+
+    .csel-face span {
+      display: block;
+      margin-top: 0.3em;
+    }
+
+    .csel-submit {
+      font-size: 1.3em;
+      padding: 0.35em 1.6em;
+    }
+
+    .csel-profile {
+      margin: 0;
+      width: 100%;
+      line-height: 1.5;
+      font-size: 0.95em;
+      /* キャラを切り替えても枠の高さが変わらないよう、3行ぶんの高さを確保する */
+      min-height: 4.5em;
+    }
+
     /* ---- ルール画面（ダイアログ）---- */
     .udialog-backdrop {
       position: fixed;
@@ -1532,6 +1666,16 @@
     <div class="tui-sub">
       <button id="historyButton" class="ubtn ubtn-sub"></button>
       <button id="ruleButton" class="ubtn ubtn-sub"></button>
+    </div>
+  </div>
+
+  <!-- キャラ変更の画面（背景とキャラはキャンバス、それ以外はここ） -->
+  <div id="charaSelectUI" class="landscape" style="display: none;">
+    <h2 id="charaSelectTitle" class="csel-title"></h2>
+    <div class="csel-panel upanel">
+      <div id="charaSelectFaces" class="csel-faces"></div>
+      <button id="charaSelectSubmit" class="ubtn csel-submit"></button>
+      <p id="charaSelectProfile" class="csel-profile"></p>
     </div>
   </div>
 
