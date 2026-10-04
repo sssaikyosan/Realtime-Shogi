@@ -6,10 +6,8 @@ import { KOMADAI_PORTRAIT_GAP } from "./ui_komadai.js";
 import { clearTitleHTML, createTitleScene, settingsButton } from "./scene_title.js";
 import { BackgroundImageUI } from "./ui_background.js";
 import { CharacterInGameUI } from "./ui_character.js";
-import { TextUI } from "./ui_text.js";
-import { OverlayUI, rememberLayout, restoreLayout } from "./ui.js";
-import { ButtonUI } from "./ui_button.js";
-import { ToggleUI } from "./ui_toggle.js";
+import { rememberLayout, restoreLayout } from "./ui.js";
+import { HtmlButtonUI, HtmlPanelUI, HtmlTextUI, HtmlToggleUI } from "./ui_html.js";
 import { beginRecord, cancelRecord, finishRecord, isRecording } from "./match_history.js";
 import { isMatching } from "./matching.js";
 
@@ -33,7 +31,7 @@ export function setOpponentCharacter(character) {
     opponentCharacter = character;
 }
 
-let endText = new TextUI({
+let endText = new HtmlTextUI({
     text: () => {
         return "Game End";
     },
@@ -42,7 +40,7 @@ let endText = new TextUI({
     size: 0.2,
     colors: ["#ff6739", "#30140b", "#ffffff"]
 });
-let winText = new TextUI({
+let winText = new HtmlTextUI({
     text: () => {
         return "Win";
     },
@@ -51,7 +49,7 @@ let winText = new TextUI({
     size: 0.2,
     colors: ["#ff6739", "#30140b", "#ffffff"]
 });
-let loseText = new TextUI({
+let loseText = new HtmlTextUI({
     text: () => {
         return "Lose";
     },
@@ -75,7 +73,7 @@ export function initGameText() {
     toTitleButton.textContent = strings['back'];
 }
 
-export const timeText = new TextUI({
+export const timeText = new HtmlTextUI({
     text: () => {
         let time = (gameManager.board.time - gameManager.board.starttime - 5000) / 1000;
         if (time <= 0) time = 0;
@@ -88,7 +86,7 @@ export const timeText = new TextUI({
     textBaseline: "top",
 });
 
-export const countDownText = new TextUI({
+export const countDownText = new HtmlTextUI({
     text: () => {
         // 終局後は表示しない（開始前に終局すると時計が止まり、カウントダウンが残ってしまう）
         if (gameManager.board.finished) return '';
@@ -146,7 +144,7 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
     playScene.add(backgroundImageUI);
 
     // 縦画面で投了・音量設定ボタンを置く上端の帯（横画面では非表示）
-    const topBarUI = new OverlayUI({ x: 0, y: 0, width: 0, height: 0, color: '#000000aa', borderRadius: 0, visible: false });
+    const topBarUI = new HtmlPanelUI({ x: 0, y: 0, width: 0, height: 0, color: '#000000aa', visible: false });
     playScene.add(topBarUI);
 
     audioManager.playBGM('battle'); // 対戦BGMを再生
@@ -176,19 +174,22 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
     // 終局処理を通らずに対局画面を離れた場合（接続切れでタイトルへ戻る等）もCPUを止める。
     // setScene は新しいシーンを作ってから古いシーンを破棄するので、次の対局のCPUは止めない
     const sceneCpu = gameManager.cpu;
+    // この対局のために作った HTML の文字・ボタンは、シーンを離れるときに取り除く
+    const sceneHtmlUIs = [];
     playScene.destroy = () => {
         if (sceneCpu !== null && gameManager.cpu === sceneCpu) gameManager.stopCpu();
+        // キャラのセリフ枠も含む（次の対局のキャラは別の UI なので、この対局のものだけを取り除く）
+        for (const u of sceneHtmlUIs) u.dispose();
     };
 
-    const resignButton = new ButtonUI({
-        text: `${strings['resign']}`,
+    const resignButton = new HtmlButtonUI({
+        text: () => strings['resign'],
         x: -0.8,
         y: -0.46,
         height: 0.05,
         width: 0.12,
-        color: '#3241c9',
+        className: '',
         textSize: 0.025,
-        textColors: ['#ffffffff', '#00000000', '#00000000'],
         onClick: () => {
             if (gameManager.cpu !== null) {
                 endGame({ winPlayer: -1, text: "resig" });
@@ -256,7 +257,7 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
     const arryNameUIs = [];
     const enemyNameUIs = [];
     for (let i = 0; i < arryNames.length; i++) {
-        let arryNamesUI = new TextUI({
+        let arryNamesUI = new HtmlTextUI({
             text: () => {
                 return `${arryNames[i]}`;
             },
@@ -273,7 +274,7 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
     }
 
     for (let i = 0; i < enemyNames.length; i++) {
-        let enemyNamesUI = new TextUI({
+        let enemyNamesUI = new HtmlTextUI({
             text: () => {
                 return `${enemyNames[i]}`;
             },
@@ -298,7 +299,7 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
             const roundRating = Math.round(arryRating);
             arryRatingtext = `${roundRating}`
         }
-        playerRatingUI = new TextUI({
+        playerRatingUI = new HtmlTextUI({
             text: () => {
                 // main.jsで計算された表示用レーティングを使用
                 return `${strings['rating']}: ` + arryRatingtext;
@@ -317,7 +318,7 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
             const opponentRoundRating = Math.round(enemyRating);
             opponentRatingtext = `${opponentRoundRating}`
         }
-        opponentRatingUI = new TextUI({
+        opponentRatingUI = new HtmlTextUI({
             text: () => {
                 // main.jsで計算された表示用レーティングを使用
                 return `${strings['rating']}: ` + opponentRatingtext;
@@ -353,7 +354,7 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
     // タッチ端末では右ドラッグの代わりに「自動成り」の切り替えスイッチを出す（初期値ON、OFFの間は成らずに移動）
     let autoPromoteToggle = null;
     if (isTouchDevice) {
-        autoPromoteToggle = new ToggleUI({
+        autoPromoteToggle = new HtmlToggleUI({
             x: -0.8,
             y: -0.34,
             width: 0.12,
@@ -367,6 +368,9 @@ export function createPlayScene(senteName, senteRating, senteCharacter, goteName
         // 盤より後に追加して先に判定させる（押したときは押下が盤に渡らない）
         playScene.add(autoPromoteToggle);
     }
+
+    sceneHtmlUIs.push(topBarUI, resignButton, ...arryNameUIs, ...enemyNameUIs, arryCharacterUI, enemyCharacterUI);
+    for (const u of [autoPromoteToggle, playerRatingUI, opponentRatingUI]) if (u) sceneHtmlUIs.push(u);
 
     // 横画面の配置はコンストラクタで指定した値。縦画面から戻すときのために覚えておく
     const landscapeUIs = [

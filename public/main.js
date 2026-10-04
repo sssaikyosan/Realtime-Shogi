@@ -7,6 +7,7 @@ import { isMatching, matchFound, showNotice, stopMatching, updateMatchingPill } 
 import { createPlayScene, backToRoom, endGame, endRoomGame, initGameText, connectionLost } from "./scene_game.js";
 import { createRoomScene, initRoomText, setRoomData, roomUpdate, roomdata } from "./scene_room.js";
 import { CHARACTER_FOLDER, LANGUAGE_FOLDER, LANGUAGES, MOVETIME, NUM_QUOTES } from "./const.js";
+import { beginHtmlFrame, endHtmlFrame } from "./ui_html.js";
 
 // 初期化フラグ
 let isInitialized = false;
@@ -811,7 +812,9 @@ function roop() {
   }
   // 以降の描画はCSSピクセル単位で行い、高解像度の拡大はここでまとめて適用する
   ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  beginHtmlFrame();
   scene.draw(ctx);
+  endHtmlFrame();
   requestAnimationFrame(roop);
 }
 

@@ -131,6 +131,138 @@
       background: var(--ui-blue-hover);
     }
 
+    /* 対局画面などの HTML の文字・ボタン（位置と大きさは ui_html.js が canvas の座標から決める） */
+    #gameHUD {
+      position: fixed;
+      inset: 0;
+      font-family: Arial, sans-serif;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    #gameHUD>* {
+      position: absolute;
+      left: 0;
+      top: 0;
+      box-sizing: border-box;
+    }
+
+    .hud-text {
+      white-space: pre;
+      line-height: 1.1;
+      font-weight: bold;
+      color: #ffffff;
+      /* 縁取り（文字の後ろに影を8方向に重ねる。text-stroke だと文字の上に線が乗って細い文字がつぶれる） */
+      --o: var(--outline, #000000);
+      text-shadow: 0.06em 0 var(--o), -0.06em 0 var(--o), 0 0.06em var(--o), 0 -0.06em var(--o),
+        0.045em 0.045em var(--o), -0.045em 0.045em var(--o), 0.045em -0.045em var(--o), -0.045em -0.045em var(--o);
+    }
+
+    .hud-text.no-outline {
+      text-shadow: none;
+    }
+
+    .hud-text.has-bg {
+      padding: 0.2em 0.25em;
+      border-radius: 0.2em;
+      text-shadow: none;
+      font-weight: normal;
+    }
+
+    .hud-btn {
+      pointer-events: auto;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hud-toggle {
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-evenly;
+      padding: 0.08em 0;
+      font-size: calc(var(--h) * 0.2);
+      font-family: inherit;
+      font-weight: bold;
+      color: #ffffff;
+      background: #1b1d33e6;
+      border: max(2px, 0.12em) solid #8a8aa0;
+      border-radius: 0.6em;
+      cursor: pointer;
+    }
+
+    .hud-toggle.on {
+      border-color: #2fbf62;
+    }
+
+    .hud-toggle-label {
+      line-height: 1.1;
+      text-align: center;
+      white-space: pre-line;
+    }
+
+    .hud-switch {
+      position: relative;
+      width: 80%;
+      height: 1.5em;
+      border-radius: 0.75em;
+      background: #5a5b70;
+    }
+
+    .hud-toggle.on .hud-switch {
+      background: #2fbf62;
+    }
+
+    .hud-switch-knob {
+      position: absolute;
+      top: 0.15em;
+      left: 0.15em;
+      width: 1.2em;
+      height: 1.2em;
+      border-radius: 50%;
+      background: #ffffff;
+      transition: left 0.15s;
+    }
+
+    .hud-toggle.on .hud-switch-knob {
+      left: calc(100% - 1.35em);
+    }
+
+    .hud-switch-state {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.7em;
+      right: 0.5em;
+    }
+
+    .hud-toggle.on .hud-switch-state {
+      right: auto;
+      left: 0.5em;
+    }
+
+    /* 縦画面の上端の帯などは、ほかの文字・ボタンより後ろに置く（要素を作った順に関係なく） */
+    .hud-panel {
+      z-index: -1;
+    }
+
+    .hud-bubble {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.3em 0.4em;
+      border-radius: 0.35em;
+      color: #ffffff;
+      text-align: center;
+      /* 行の区切りは ui_character.js が決めている（枠の幅で折り返さない） */
+      white-space: pre;
+      line-height: 1.1;
+    }
+
     .uinput {
       background: #f0f0f0;
       color: #000000;
@@ -1626,6 +1758,8 @@
   </div>
 
   <canvas id="shogiCanvas" tabindex="0"></canvas>
+  <!-- 対局画面などの文字・ボタン（canvas の UI と同じ座標に HTML で出す。ui_html.js） -->
+  <div id="gameHUD"></div>
 
   <!-- タイトル画面（背景とキャラはキャンバス、それ以外はここ） -->
   <div id="titleUI" class="landscape" style="display: none;">

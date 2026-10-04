@@ -12,7 +12,7 @@ const MOVES_KEY = (id) => `matchHistory.moves.${id}`;
 
 export const RECENT = 'recent';
 export const ROOT = 'root';
-export const RECENT_LIMIT = 50;
+export const RECENT_LIMIT = 100;
 export const SAVED_LIMIT = 200;
 export const FOLDER_LIMIT = 50;
 export const NAME_MAX_LENGTH = 30;

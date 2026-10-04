@@ -496,6 +496,8 @@ export function createTitleScene(savedTitleCharacter = null, loadNameInput = tru
     renderTitleStatus();
     titleAnnounce.textContent = serverStatus.announcement ?? '';
 
+    // 前のタイトル画面のキャラを引き継がないときは、そのセリフ枠（HTML）を取り除く
+    if (titleCharacter && titleCharacter !== savedTitleCharacter) titleCharacter.dispose();
     titleCharacter = savedTitleCharacter;
     if (titleCharacter === null) {
         titleCharacter = new CharacterImageUI({

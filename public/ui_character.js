@@ -1,6 +1,7 @@
-import { TextUI, wrapLine } from "./ui_text.js";
+import { wrapLine } from "./ui_text.js";
+import { HtmlBubbleUI } from "./ui_html.js";
 import { characterImages, audioManager, onClick, characterVideos, strings } from "./main.js";
-import { OverlayUI, UI } from "./ui.js";
+import { UI } from "./ui.js";
 import { CHARACTER_FOLDER, NUM_QUOTES, OVERLAY_COLOR } from "./const.js";
 
 // キャラクター画像を表示するためのUIクラス
@@ -22,26 +23,24 @@ export class CharacterImageUI extends UI {
     this.height = params.height;
 
     this.textsize = 0.035;
-    this.voiceTextOverlay = new OverlayUI({
+    // セリフの文字（text と大きさ）。吹き出しは HTML で出す
+    this.voiceText = { text: () => "", size: 0.035, y: 0 };
+    this.voiceTextOverlay = new HtmlBubbleUI({
       color: OVERLAY_COLOR,
       x: 0.2,
       y: 0.15,
       width: 0,
-      height: 0.035 + 0.04
+      height: 0.035 + 0.04,
+      voice: () => this.voiceText
     });
-    this.voiceText = new TextUI({
-      text: () => {
-        return "";
-      },
-      x: 0.0,
-      y: 0.0,
-      size: 0.035,
-      colors: ["#ffffff", "#00000000", "#00000000"],
-      position: 'center'
-    });
-    this.voiceTextOverlay.add(this.voiceText);
     this.add(this.voiceTextOverlay);
   }
+  // 使わなくなったときにセリフ枠（HTML）を取り除く
+  dispose() {
+    this.stopVideo();
+    this.voiceTextOverlay.dispose();
+  }
+
   init() {
     this.videoElement = [];
 
@@ -218,27 +217,24 @@ export class CharacterInGameUI extends UI {
     this.width = params.width;
     this.height = params.height;
     this.textsize = IN_GAME_VOICE_LAYOUT.size;
-    this.voiceTextOverlay = new OverlayUI({
+    // セリフの文字（text と大きさ）。吹き出しは HTML で出す
+    this.voiceText = { text: () => "", size: IN_GAME_VOICE_LAYOUT.size, y: 0 };
+    this.voiceTextOverlay = new HtmlBubbleUI({
       color: OVERLAY_COLOR,
       x: 0.0,
       y: 0.0,
       width: 0,
-      height: 0
+      height: 0,
+      voice: () => this.voiceText
     });
-    this.voiceText = new TextUI({
-      text: () => {
-        return "";
-      },
-      x: 0.0,
-      y: 0.0,
-      size: IN_GAME_VOICE_LAYOUT.size,
-      colors: ["#ffffff", "#00000000", "#00000000"],
-      position: 'center'
-    });
-    this.voiceTextOverlay.add(this.voiceText);
     this.add(this.voiceTextOverlay);
     this.resetVoiceLayout();
     this.init();
+  }
+
+  // 対局画面を離れるときにセリフ枠（HTML）を取り除く
+  dispose() {
+    this.voiceTextOverlay.dispose();
   }
 
   // セリフ枠を標準（横画面）の配置に戻す
